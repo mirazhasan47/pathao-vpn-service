@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet"/>
+    <title>PayPlus</title>
+    <style type="text/css">
+        .robiLogo{
+         margin-top: 11px;
+         width: 80px;
+         height: 60px;
+     }
+ </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <br>
+        <div class="row">
+            <!-- First Image -->
+            <div class="col-4">
+                <img id="pImg" src="https://shl.com.bd/public/assets/img/payplusbn.png" alt="Image 1" class="img-fluid">
+            </div>
+
+        </div>
+    </div>
+    <hr>
+    <div class="container">
+
+        <div class="row">
+            <div class="col-md-12 text-center">
+                <img src="https://shl.com.bd/public/assets/img/tt.png" style="width: 50%; height: auto;">
+            </div>
+
+
+            <!-- Second Image -->
+            <!-- <div class="col-5">
+                <img 
+                id="rImg" 
+                src="https://shl.com.bd/uploads/userimages/robi.png" alt="Robi" class="img-fluid pull-left robiLogo">
+            </div>
+            <div class="col-2">
+            </div>
+          
+            <div class="col-5">
+                <img id="aImg" src="https://shl.com.bd/uploads/userimages/airtel.png" alt="Airtel" class="img-fluid pull-right">
+            </div> -->
+        </div>
+    </div>
+
+
+
+    <div class="container mb-2">
+    <!--     <div class="row justify-content-center">
+            <img src="https://shl.com.bd/public/assets/img/payplusbn.png" >
+        </div>
+
+        <br>
+        <br> -->
+        <h4 style="color:#480367; text-align: center;">Scan and Recharge</h4>
+        <br>
+        
+        <form id="rechargeForm">
+
+            <input type="hidden" name="id" id="accountno">
+            <input type="hidden" name="title" id="title" value="">
+            <input type="hidden" name="message" id="message" value="">
+
+            <div class="form-group">
+
+            </div>
+
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                  <span style="background-color:#480367; color:white;" class="input-group-text"><i class="fa fa-phone"></i></span>
+              </div>
+              <input required type="number" class="form-control" id="mobile" placeholder="Mobile Number" name="mobile">
+
+          </div>
+
+
+          <div style="display: none;" class="input-group mb-3">
+            <div class="input-group-prepend">
+              <span style="background-color:#480367; color:white;" class="input-group-text"><i class="fa fa-podcast"></i></span>
+          </div>
+          <select required class="form-control" id="operator" name="operator">
+            <option value="Teletalk">Teletalk</option>
+        </select>
+    </div>
+
+
+    <div class="input-group mb-3">
+        <div class="input-group-prepend">
+          <span style="background-color:#480367; color:white;" class="input-group-text"><i class="fa fa-cog"></i></span>
+      </div>
+      <select required class="form-control" id="dropdown2" name="dropdown2">
+        <option value="0">Select Connection Type</option>
+        <option value="Prepaid">Prepaid</option>
+        <option value="Postpaid">Postpaid</option>
+    </select>
+
+</div>
+
+
+<div class="input-group mb-3">
+    <div class="input-group-prepend">
+      <span style="background-color:#480367; color:white;" class="input-group-text">Tk.</span>
+  </div>
+  <input required type="number" placeholder="Amount (Tk.)" class="form-control" id="amount" name="amount">
+
+</div>
+
+
+<div class="row justify-content-end mr-1">
+    <button type="submit" class="btn btn-primary" style=" background-color: #480367 ; border-color:#480367; color: white;">Submit</button>
+</div>
+
+</form>
+</div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js" integrity="sha512-3gJwYpMe3QewGELv8k/BX9vcqhryRdzRMxVfq6ngyWXwo03GFEzjsUm8Q7RZcHPHksttq7/GFoxjCVUjkjvPdw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script type="text/javascript">
+
+
+    $('#mobile').keyup(function () {
+        var number = $('#mobile').val();
+
+        // alert(number);
+        if(number.length>=3)
+        {
+           var number = number.substring(0,3);	
+           if(number=="017" || number=="013")
+           {
+            $('#operator').val("GP");
+            $("#title").val("GP Recharge Request from PayPos");	
+        }
+        else if(number=="019" || number=="014")
+        {
+            $('#operator').val("Banglalink");
+            $("#title").val("Banglalink Recharge Request from PayPos");
+        }
+        else if(number=="016")
+        {
+            $('#operator').val("Airtel");
+            $("#title").val("Airtel Recharge Request from PayPos");
+        }
+        else if(number=="018")
+        {
+            $('#operator').val("Robi");
+            $("#title").val("Robi Recharge Request from PayPos");
+        }
+        else if(number=="015")
+        {
+            $('#operator').val("Teletalk");
+            $("#title").val("Teletalk Recharge Request from PayPos");
+        }
+            // $('#operator').select2().trigger('change');
+    }	
+
+    else{
+        $('#operator').val(0);
+    }
+
+});
+
+
+
+    function getUrlParameter(name) {
+        name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+        var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+        var results = regex.exec(location.search);
+        return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+    }
+
+    var accountno = getUrlParameter('accountno');
+    $('#accountno').val(accountno);
+
+
+    $('#amount').on('input', function() {
+        var amount = $(this).val();
+        var mobile = $('#mobile').val();
+        $('#message').val('Request amount ' +amount+' tk for '+mobile);
+    });
+
+    $(document).ready(function() {
+
+
+        $("#rechargeForm").submit(function(event) {
+            event.preventDefault(); 
+
+            var formData = $(this).serialize(); 
+
+            $.ajax({
+                type: "POST",
+                url: "https://shl.com.bd/public/api/appapi/sendRobiNotif", 
+                data: formData,
+                success: function(response) {
+                    console.log(response);
+                    if(response == 'success'){
+                     Swal.fire({
+                        title: 'Success',
+                        text: 'Recharge request sent. Please wait!',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    }).then((result) => {  
+                        location.reload();
+                    });                       
+                }else{
+                    alert('Something went wrong');
+                }
+
+            },
+            error: function() {
+                        // $("#response-message").html("An error occurred.");
+            }
+        });
+        });
+    });
+
+    $('#pImg').click(function(){
+
+        window.open('https://www.paystation.com.bd/','_blank');
+    });
+    $('#rImg').click(function(){
+
+
+        window.open('https://www.teletalk.com.bd/en/','_blank');
+
+    });
+    $('#aImg').click(function(){
+
+        window.open('https://www.teletalk.com.bd/en/','_blank');
+
+    });
+
+</script>
+
+
+</body>
+
+</html>

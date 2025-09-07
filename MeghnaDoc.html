@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <iframe width="100%" height="300" style="border:none;" src="http://172.28.88.25:8883/agency-service/swagger-ui/index.html?url=/agency-service/api-docs.json#/"></iframe>
+</body>
+</html>
+
+<?php
+$url = 'http://example.com';
+$contents = file_get_contents($url);
+
+if ($contents !== false) {
+    // Successfully loaded the website content
+    echo $contents;
+} else {
+    // Failed to load the website content
+    echo 'Failed to load ' . $url;
+}
+?>

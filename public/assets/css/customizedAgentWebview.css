@@ -1,0 +1,866 @@
+*:not(i) {
+    font-family: Roboto !important;
+}
+
+body {
+    font-size: 18px !important;
+    background-color: #F5F7FC !important;
+    color: #605e5e !important;
+}
+
+#settings {
+    display: none !important;
+}
+
+.font-bl {
+    color: #AC68CD !important;
+}
+
+.bg-bl {
+    background-color: #F5F7FC !important;
+    color: #605e5e !important;
+}
+
+.bl-top-bar {
+    background-color: #F5F7FC !important;
+    color: #605e5e !important;
+    padding: 5px 0 !important;
+    font-weight: 600 !important;
+}
+
+.bold {
+    font-weight: 700 !important;
+}
+
+
+.font-dark-off-white {
+    color: #605e5e !important;
+}
+
+.font-size-12 {
+    font-size: 12px !important;
+}
+
+.font-size-14 {
+    font-size: 14px !important;
+}
+
+.font-size-16 {
+    font-size: 16px !important;
+}
+
+.font-size-20 {
+    font-size: 20px !important;
+}
+
+.font-size-24 {
+    font-size: 24px !important;
+}
+
+.font-size-28 {
+    font-size: 28px !important;
+}
+
+.font-size-30 {
+    font-size: 30px !important;
+}
+
+.font-size-22 {
+    font-size: 22px !important;
+}
+
+.mt-8 {
+    margin-top: 8px !important;
+}
+
+.mt-10 {
+    margin-top: 10px !important;
+}
+
+.mt-15 {
+    margin-top: 15px !important;
+}
+
+.mt-20 {
+    margin-top: 20px !important;
+}
+
+.mt-25 {
+    margin-top: 25px !important;
+}
+
+.mt-30 {
+    margin-top: 30px !important;
+}
+
+.mt-35 {
+    margin-top: 35px !important;
+}
+
+.mt-100 {
+    margin-top: 100px !important;
+}
+
+.mb-100 {
+    margin-bottom: 100px !important;
+}
+
+.mb-30 {
+    margin-bottom: 30px !important;
+}
+
+.m-auto {
+    margin: auto;
+}
+
+.mb-150 {
+    margin-bottom: 150px !important;
+}
+
+.destination-block,
+.coach-list-item,
+.bank-list-item,
+.payment-failed-message-block,
+.payment-success-message-block {
+    background-color: #fff !important;
+    border: 1px solid #AC68CD65 !important;
+    box-shadow: 2px 2px 8px 2px #AC68CD35 !important;
+    padding: 15px 20px 10px !important;
+}
+
+.select2.select2-container,
+.select2-dropdown {
+    font-size: 14px !important;
+}
+
+input.form-control,
+.select2.select2-container .select2-selection.select2-selection--single,
+.select2-container--default .select2-search--dropdown .select2-search__field,
+.select2-container--default .select2-search--dropdown .select2-search__field:focus-visible {
+    border: 1px solid #9cd4b9 !important;
+    border-radius: 2px !important;
+    background-color: #fff !important;
+    font-size: 14px !important;
+}
+
+.select2-search--dropdown .select2-search__field {
+    padding: 2px !important;
+    font-size: 14px !important;
+}
+
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #AC68CD !important;
+    color: #fff !important;
+}
+
+.date .btn {
+    border: 1px solid #AC68CD !important;
+    background-color: #AC68CD !important;
+    color: #fff !important;
+    border-radius: 2px !important;
+    font-size: 16px !important;
+    padding: 5px 10px !important;
+}
+
+.datepicker table tr td.today {
+    background-color: #d7b7e6 !important;
+    border-color: #d7b7e6 !important;
+}
+
+.datepicker table tr td.active.active,
+.datepicker table tr td.active.highlighted.active,
+.datepicker table tr td.active.highlighted:active,
+.datepicker table tr td.active.highlighted:hover,
+.datepicker table tr td.active:active,
+.datepicker table tr td.active:hover,
+.open>.dropdown-toggle.datepicker table tr td.active,
+.open>.dropdown-toggle.datepicker table tr td.active.highlighted,
+.datepicker table tr td span.active.active,
+.datepicker table tr td span.active.disabled.active,
+.datepicker table tr td span.active.disabled:active,
+.datepicker table tr td span.active.disabled:hover.active,
+.datepicker table tr td span.active.disabled:hover:active,
+.datepicker table tr td span.active:active,
+.datepicker table tr td span.active:hover.active,
+.datepicker table tr td span.active:hover:active,
+.open>.dropdown-toggle.datepicker table tr td span.active,
+.open>.dropdown-toggle.datepicker table tr td span.active.disabled,
+.open>.dropdown-toggle.datepicker table tr td span.active.disabled:hover,
+.open>.dropdown-toggle.datepicker table tr td span.active:hover,
+.datepicker table tr td span.active.active,
+.datepicker table tr td span.active.disabled.active,
+.datepicker table tr td span.active.disabled:active,
+.datepicker table tr td span.active.disabled:hover.active,
+.datepicker table tr td span.active.disabled:hover:active,
+.datepicker table tr td span.active:active,
+.datepicker table tr td span.active:hover.active,
+.datepicker table tr td span.active:hover:active,
+.open>.dropdown-toggle.datepicker table tr td span.active,
+.open>.dropdown-toggle.datepicker table tr td span.active.disabled,
+.open>.dropdown-toggle.datepicker table tr td span.active.disabled:hover,
+.open>.dropdown-toggle.datepicker table tr td span.active:hover {
+    background-color: #AC68CD !important;
+    border-color: #AC68CD !important;
+}
+
+.btn.green-bl {
+    background-color: #AC68CD !important;
+    color: #fff !important;
+    border: 1px solid #AC68CD !important;
+}
+
+
+.btn.blue-steel {
+    background-color: #4B77BE !important;
+    color: #fff !important;
+    border: 1px solid #4B77BE !important;
+}
+
+
+.site-footer-bl {
+    color: #a9a5a5 !important;
+    text-align: center !important;
+    padding: 10px 0px !important;
+    margin-bottom: 20px;
+    font-size: 14px !important;
+    width: 100% !important;
+}
+
+.mb-40 {
+    margin-bottom: 40px !important;
+}
+
+.mb-70 {
+    margin-bottom: 70px !important;
+}
+
+@media (min-width: 241px) and (max-width: 480px) {
+
+    #toast-container>div {
+        width: 24em !important;
+    }
+}
+
+.font-size-10 {
+    font-size: 10px !important;
+}
+
+.vcenter {
+    vertical-align: middle !important;
+}
+
+.coach-list-item .coach-bus-logo {
+    border: 1px solid #d5afe7 !important;
+    padding: 5px 7px !important;
+    background-color: #ebdff1a3 !important;
+    color: #c883ea !important;
+    border-radius: 25px !important;
+}
+
+.mb-5 {
+    margin-bottom: 5px !important;
+}
+
+.mb-10 {
+    margin-bottom: 10px !important;
+}
+
+.mb-15 {
+    margin-bottom: 15px !important;
+}
+
+.mb-20 {
+    margin-bottom: 20px !important;
+}
+
+.mb-25 {
+    margin-bottom: 25px !important;
+}
+
+.mb-30 {
+    margin-bottom: 30px !important;
+}
+
+.ml-5 {
+    margin-left: 5px !important;
+}
+
+.ml-10 {
+    margin-left: 10px !important;
+}
+
+.ml-15 {
+    margin-left: 15px !important;
+}
+
+.ml-20 {
+    margin-left: 20px !important;
+}
+
+.ml-25 {
+    margin-left: 25px !important;
+}
+
+.ml-30 {
+    margin-left: 30px !important;
+}
+
+.ml-10-per {
+    margin-left: 10% !important;
+}
+
+.mr-5 {
+    margin-right: 5px !important;
+}
+
+.mr-10 {
+    margin-right: 10px !important;
+}
+
+.mr-15 {
+    margin-right: 15px !important;
+}
+
+.mr-20 {
+    margin-right: 20px !important;
+}
+
+.mr-25 {
+    margin-right: 25px !important;
+}
+
+.mr-30 {
+    margin-right: 30px !important;
+}
+
+.coach-list .coach-available-seat,
+.coach-list .ticket-status {
+    border: 1px solid #AC68CD65 !important;
+    background-color: #ebdff1a3 !important;
+    color: #8726ba !important;
+    padding: 5px 10px !important;
+    position: relative !important;
+    top: 11px !important;
+    left: 0px !important;
+    font-size: 14px !important;
+}
+
+.coach-list .coach-available-seat {
+    padding: 7px !important;
+    position: relative !important;
+    top: -15px !important;
+    right: 0px !important;
+    float: right !important;
+    font-weight: 800 !important;
+    background-color: #cb79f3 !important;
+    color: #f2ebf6 !important;
+}
+
+.coach-list .view-seats,
+.coach-list .view-details {
+    position: relative !important;
+    bottom: 26px !important;
+    right: -20px !important;
+    border-radius: 0px !important;
+    width: fit-content !important;
+}
+
+.coach-list-item {
+    margin-top: 15px !important;
+}
+/* .coach-list-block .coach-list-item {
+    margin-top: -15px !important;
+} */
+
+.bl-bottom-gap {
+    margin: 30px !important;
+}
+
+.bl-top-bar .take-back {
+    border: none !important;
+    background-color: #F5F7FC !important;
+    padding: 1px 15px 1px 10px !important;
+    color: #605e5e !important;
+    font-weight: 400 !important;
+}
+
+.font-gray {
+    color: #b0a8a8 !important;
+}
+
+.font-green-bl {
+    color: #AC68CD !important;
+}
+
+.font-green-slime {
+    color: #6bdada !important;
+}
+
+.font-red-blood {
+    color: #cd1c1c !important;
+}
+
+.seat-stat-block {
+    background-color: #fff !important;
+    border: 1px solid #AC68CD65 !important;
+    box-shadow: 2px 2px 8px 2px #AC68CD35 !important;
+    padding: 10px !important;
+}
+
+.seat-stat-block .seat-stat-tag {
+    padding: 10px !important;
+    display: inline-block !important;
+}
+
+.seat-stat-block .seat-stat-text {
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    margin-bottom: 0px !important;
+}
+
+.seat-stat-block .seat-available>.seat-stat-tag {
+    border: 1px solid #6bdada !important;
+    background-color: #6bdada !important;
+}
+
+.seat-stat-block .seat-available>.seat-stat-text {
+    color: #6bdada !important;
+}
+
+.seat-stat-block .seat-booked>.seat-stat-tag {
+    border: 1px solid #c5c8cb !important;
+    background-color: #c5c8cb !important;
+}
+
+.seat-stat-block .seat-booked>.seat-stat-text {
+    color: #c5c8cb !important;
+}
+
+.seat-stat-block .seat-selected>.seat-stat-tag {
+    border: 1px solid #AC68CD !important;
+    background-color: #AC68CD !important;
+}
+
+.seat-stat-block .seat-selected>.seat-stat-text {
+    color: #AC68CD !important;
+}
+
+.bus-layout .bus-driver-seat {
+    border: 1px solid #AC68CD !important;
+    padding: 10px 20px !important;
+    background-color: #AC68CD !important;
+    border-top-right-radius: 5px !important;
+    border-top-left-radius: 5px !important;
+}
+
+.bus-layout .bus-engine {
+    border: 1px solid #AC68CD !important;
+    padding: 5px 20px !important;
+    background-color: #AC68CD !important;
+    border-bottom-right-radius: 5px !important;
+    border-bottom-left-radius: 5px !important;
+}
+
+.font-white {
+    color: #fff !important;
+}
+
+.bus-layout .bus-passenger-seat {
+    border: 1px solid #AC68CD !important;
+}
+
+.bus-layout .bus-passenger-seat .table {
+    margin-bottom: 0 !important;
+}
+
+.bus-layout .bus-passenger-seat .btn {
+    min-width: 50px !important;
+    min-height: 30px !important;
+}
+
+.bus-layout .bus-passenger-seat .btn.available {
+    background-color: #6bdada !important;
+    color: #ffffff !important;
+}
+
+.bus-layout .bus-passenger-seat .btn.booked {
+    background-color: #c5c8cb !important;
+    color: #ffffff !important;
+}
+
+.bus-layout .bus-passenger-seat .btn.selected {
+    background-color: #AC68CD !important;
+    color: #ffffff !important;
+}
+
+.booking-summary {
+    height: inherit !important;
+}
+
+.booking-summary .booking-summary-seat,
+.booking-summary .booking-summary-price {
+    background-color: #fff !important;
+    border: 1px solid #AC68CD65 !important;
+    box-shadow: 2px 2px 8px 2px #AC68CD35 !important;
+    padding: 10px !important;
+    height: 100% !important;
+}
+
+.booking-summary .table tr>td,
+.destination-block .table tr>td {
+    padding: 0 2px;
+}
+
+.border-bottom-1-green-bl {
+    border-bottom: 1px solid #d5afe7 !important;
+}
+
+.booking-summary p {
+    margin-bottom: 5px !important;
+}
+
+.booking-summary hr,
+.destination-block hr {
+    border-top: 1px solid #d5afe7 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+.padding-right-5 {
+    padding-right: 5px !important;
+}
+
+.padding-left-5 {
+    padding-left: 5px !important;
+}
+
+.display-none {
+    display: none !important;
+}
+
+.form-control::placeholder {
+    color: #a9a5a5 !important;
+    opacity: 1;
+    /* Firefox */
+}
+
+.form-control:-ms-input-placeholder {
+    /* Internet Explorer 10-11 */
+    color: #a9a5a5 !important;
+}
+
+.form-control::-ms-input-placeholder {
+    /* Microsoft Edge */
+    color: #a9a5a5 !important;
+}
+
+.destination-block .booking-summary-price {
+    background-color: #f4f5f5 !important;
+    padding: 10px 15px !important;
+}
+
+.payment-failed-logo,
+.payment-success-logo {
+    font-size: 70px !important;
+    color: #fff !important;
+    border-radius: 50% !important;
+}
+
+.payment-failed-logo {
+    border: 1px solid #cd1c1c !important;
+    box-shadow: 2px 2px 11px 5px #cd1c1c65 !important;
+    background-color: #cd1c1c !important;
+    padding: 8px 25px !important;
+}
+
+.payment-success-logo {
+    border: 1px solid #AC68CD !important;
+    box-shadow: 2px 2px 11px 5px #AC68CD65 !important;
+    background-color: #AC68CD !important;
+    padding: 10px 20px !important;
+}
+
+.payment-failed-text,
+.payment-success-text {
+    margin-top: 20px !important;
+    font-size: 28px !important;
+    font-weight: 900 !important;
+}
+
+.payment-failed-text {
+    color: #cd1c1c !important;
+}
+
+.payment-success-text {
+    color: #AC68CD !important;
+}
+
+.payment-failed-message-block {
+    border: 1px solid #cd1c1c65 !important;
+    box-shadow: 2px 2px 8px 2px #cd1c1c35 !important;
+    color: #670505 !important;
+}
+
+.payment-success-message-block {
+    color: #03542d !important;
+}
+
+p,
+.form-group {
+    margin-bottom: 10px !important;
+}
+
+.coach-list-item.cancelled {
+    border: 1px solid #cd1c1c65 !important;
+    box-shadow: 2px 2px 8px 2px #cd1c1c35 !important;
+}
+
+.coach-list-item.booked {
+    border: 1px solid #6bdada65 !important;
+    box-shadow: 2px 2px 8px 2px #6bdada35 !important;
+}
+
+.coach-list-item.cancelled .coach-bus-logo {
+    border: 1px solid #e25d5d !important;
+    background-color: #fae8e8 !important;
+    color: #f34646 !important;
+}
+
+.coach-list-item.booked .coach-bus-logo {
+    border: 1px solid #6bdada !important;
+    background-color: #d9f7f7 !important;
+    color: #6bdada !important;
+}
+
+.btn.green-slime {
+    background-color: #6bdada !important;
+    color: #fff !important;
+    border: 1px solid #6bdada !important;
+}
+
+.btn.red-blood {
+    background-color: #cd1c1c !important;
+    color: #fff !important;
+    border: 1px solid #cd1c1c !important;
+}
+
+.coach-list .ticket-status {
+    font-weight: 800 !important;
+}
+
+.coach-list .ticket-status.booked {
+    border: 1px solid #6bdada65 !important;
+    background-color: #d9f7f7 !important;
+    color: #6bdada !important;
+}
+
+.coach-list .ticket-status.cancelled {
+    border: 1px solid #cd1c1c65 !important;
+    background-color: #fae8e8 !important;
+    color: #f34646 !important;
+}
+
+.mt--15 {
+    margin-top: -15px !important;
+}
+
+.search-block {
+    border: 1px solid #96b1dd !important;
+    padding: 10px !important;
+    box-shadow: 2px 2px 7px 5px #dce6f5 !important;
+    background-color: #fff !important;
+    width: 80% !important;
+    top: -10px !important;
+    right: 6px !important;
+    position: absolute !important;
+    z-index: 10000 !important;
+}
+
+.select2-dropdown {
+    z-index: 10051 !important;
+}
+
+.block-ui:not(.clear) {
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    background-color: #282829bf !important;
+    opacity: 1 !important;
+    display: flex !important;
+    text-align: center !important;
+    z-index: 100000 !important;
+    /* pointer-events: none !important; */
+}
+
+.block-ui.clear {
+    display: none !important;
+}
+
+.block-ui:not(.clear) .loading {
+    pointer-events: none !important;
+    position: absolute !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    z-index: 100001 !important;
+    width: fit-content !important;
+    height: fit-content !important;
+    margin: auto !important;
+}
+
+.block-ui:not(.clear) .loading .text {
+    color: #fff !important;
+    font-size: 20px !important;
+    font-weight: 700 !important;
+}
+
+.block-ui:not(.clear) .loading .block-loader {
+    display: flex !important;
+    padding: 10px 0 !important;
+
+}
+
+.block-ui:not(.clear) .loading .block-loader .rect {
+    width: 12% !important;
+    height: 65px !important;
+    border: 1px solid #fff !important;
+    background-color: #fff !important;
+    margin: auto !important;
+    animation: stretchdelay 1.2s infinite ease-in-out !important;
+}
+
+.block-ui:not(.clear) .loading .block-loader .rect.rect2 {
+    animation-delay: -1.1s !important;
+}
+
+.block-ui:not(.clear) .loading .block-loader .rect.rect3 {
+    animation-delay: -1s !important;
+}
+
+.block-ui:not(.clear) .loading .block-loader .rect.rect4 {
+    animation-delay: -0.9s !important;
+}
+
+.block-ui:not(.clear) .loading .block-loader .rect.rect5 {
+    animation-delay: -0.8s !important;
+}
+
+@keyframes stretchdelay {
+
+    0%,
+    40%,
+    100% {
+        transform: scaleY(0.6);
+    }
+
+    20% {
+        transform: scaleY(1);
+    }
+}
+
+.custom-control {
+    line-height: 1.2 !important;
+}
+
+.btn-link {
+    font-weight: 500 !important;
+    color: #007bff !important;
+}
+
+.btn.btn-rounded {
+    border-radius: 50px !important;
+}
+
+.btn.green-bl.btn-outline {
+    background-color: #FFF !important;
+    color: #AC68CD !important;
+    border: 1px solid #AC68CD !important;
+}
+
+.btn.blue-steel.btn-outline {
+    background-color: #FFF !important;
+    color: #4B77BE !important;
+    border: 1px solid #4B77BE !important;
+}
+
+.btn.green-slime.btn-outline {
+    background-color: #FFF !important;
+    color: #6bdada !important;
+    border: 1px solid #6bdada !important;
+}
+
+.btn.red-blood.btn-outline {
+    background-color: #FFF !important;
+    color: #cd1c1c !important;
+    border: 1px solid #cd1c1c !important;
+}
+
+
+
+.btn.green-bl:hover {
+    background-color: #8e31bb !important;
+    color: #fff !important;
+    border: 1px solid #8e31bb !important;
+}
+
+.btn.blue-steel:hover {
+    background-color: #15489a !important;
+    color: #fff !important;
+    border: 1px solid #15489a !important;
+}
+.btn.red-blood:hover {
+    background-color: #cd1c1c !important;
+    color: #fff !important;
+    border: 1px solid #cd1c1c !important;
+}
+
+.btn-link:hover {
+    color: #0056b3 !important;
+    text-decoration: none !important;
+}
+
+.bus-passenger-seat span.bus-deck-label {
+    color: #AC68CD !important;
+    font-size: 16px !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    border: 1px solid #AC68CD35 !important;
+    background-color: #e1f2e6 !important;
+    display: inline-block !important;
+    margin: 15px 10px 5px !important;
+    padding: 5px 20px !important;
+    box-shadow: 1px 1px 5px 1px #AC68CD35 !important;
+}
+.custom-control.custom-checkbox .custom-control-label::before {
+    /* background-color: #fffbfb !important; */
+    border-color: #7f07be !important;
+}
+
+.custom-control .custom-control-input:checked ~ .custom-control-label.checkbox-success::before {
+    border-color: #8b26bc !important;
+    background-color: #8b26bc !important;
+}
+
+.font-size-11{
+    font-size: 11px !important;
+}
+
+.margin-bottom-2{
+    margin-bottom: 2px !important;
+}
+
+
+
+
+
+
+
+
+
