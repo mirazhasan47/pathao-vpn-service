@@ -79,12 +79,46 @@ class BillPay extends Controller
 		$bill_payment_id=$req->bill_payment_id;
 		$bill_refer_id=$req->bill_refer_id;
 
+		if(isset($req->client_ref)){
+			$bupdata["client_ref"]=$req->client_ref;
+			DB::table('bill_payment')->where('id',$bill_payment_id)->update($bupdata);
+		} else {
+			return response()->json(array("result" => "failed","status_code" => "1007", 'message'=>'Kindly provide client_ref'));
+
+		}
+
+	if (!isset($req->client_ref)) {
+		return response()->json([
+			"result" => "failed",
+			"status_code" => "1007",
+			"message" => "Kindly provide client_ref"
+		]);
+	}
+
+	// check if client_ref already exists for another record
+	$existFirstClientRef = DB::table('bill_payment')
+		->where('client_ref', $req->client_ref)
+		->where('id', '!=', $bill_payment_id)
+		->first();
+
+	if ($existFirstClientRef) {
+		return response()->json([
+			"result"  => "failed",
+			"status_code"  => "1007",
+			"message" => "This client_ref is already used"
+		]);
+	}
+
+	// if no conflict, update
+	$bupdata["client_ref"] = $req->client_ref;
+	DB::table('bill_payment')->where('id', $bill_payment_id)->update($bupdata);
+
 		if (str_starts_with($token, 'pathaoExpiry')) {
                 
 			$checkResult= $this->checkExpiryToken($token);
 			
 			if($checkResult->original['status']== 'failed') {
-				return response()->json(array("result" => "failed", 'message'=>$checkResult->original['message']));
+				return response()->json(array("result" => "failed","status_code" => "1001", 'message'=>$checkResult->original['message']));
 			} else {
 				$token = 'QkDVzVbfoQYh40QdqcpeElEmiZJk1hf9iAMbW6nq';
 			}
@@ -103,7 +137,7 @@ class BillPay extends Controller
 			$tdata["testdata"]="";
 			DB::table('test2')->insert($tdata);
 			
-			return response()->json(array("result" => "failed", 'message'=>'Please try again after 5 seconds'));
+			return response()->json(array("result" => "failed","status_code" => "1007", 'message'=>'Please try again after 5 seconds'));
 
 		} else {
 
@@ -161,7 +195,7 @@ class BillPay extends Controller
 
 			if($cData->new_package==1){
 				if($cData->kyc!=2){
-					return response()->json(array("result" => "failed", 'message'=>'Sorry! KYC not verified.'));
+					return response()->json(array("result" => "failed","status_code" => "1007", 'message'=>'Sorry! KYC not verified.'));
 					exit();
 				}
 			}
@@ -171,7 +205,7 @@ class BillPay extends Controller
 			$pincheck = DB::table('customers')->select('id')->where('acc_no', $acc_no)->where('pin', $pin)
 			->where('activation_status','active')->where('status', 'Active')->limit(1)->first();
 			if(!$pincheck){
-				return response()->json(array("result" => "failed", 'message'=>'Invalid PIN.'));
+				return response()->json(array("result" => "failed", "status_code" => "1007", 'message'=>'Invalid PIN.'));
 				exit();
 			}
 
@@ -254,7 +288,7 @@ class BillPay extends Controller
 						}
 						else
 						{
-							return response()->json(array("result" => "failed", 'message'=>$rsdata["message"]));
+							return response()->json(array("result" => "failed", "status_code" => "1007", 'message'=>$rsdata["message"]));
 							exit();
 						}
 					}
@@ -268,7 +302,7 @@ class BillPay extends Controller
 						}
 						else
 						{
-							return response()->json(array("result" => "failed", 'message'=>$rsdata["message"]));
+							return response()->json(array("result" => "failed","status_code" => "1007", 'message'=>$rsdata["message"]));
 							exit();
 						}
 					}
@@ -286,7 +320,7 @@ class BillPay extends Controller
 						}
 						if($balanceEkpay<2000)
 						{
-							return response()->json(array("result" => "failed", 'message'=>'The service is currently unavailable...'));
+							return response()->json(array("result" => "failed","status_code" => "1007", 'message'=>'The service is currently unavailable...'));
 						}
 						
 						$tokenData=$ekObj->getToken();
@@ -307,7 +341,7 @@ class BillPay extends Controller
 								$tdata["type"]="failed message for bill ".$bill_payment_id;
 								$tdata["testdata"]=$resArray->resp_status->rsp_msg;
 								DB::table('test2')->insert($tdata);
-								return response()->json(array("result" => "failed", 'message'=>$resArray->resp_status->rsp_msg));
+								return response()->json(array("result" => "failed","status_code" => "1007", 'message'=>$resArray->resp_status->rsp_msg));
 								exit();
 							}
 						}
@@ -316,7 +350,7 @@ class BillPay extends Controller
 							$tdata["type"]="failed message for bill ".$bill_payment_id;
 							$tdata["testdata"]="Bill payment process failed";
 							DB::table('test2')->insert($tdata);
-							return response()->json(array("result" => "failed", 'message'=>'Bill payment process failed'));
+							return response()->json(array("result" => "failed","status_code" => "1007", 'message'=>'Bill payment process failed'));
 							exit();
 						}
 					}
@@ -647,15 +681,21 @@ class BillPay extends Controller
 
 							//=============APPS RESPONSE================================
                         $billData=DB::table('bill_payment')->select('bill_name','bill_no','biller_acc_no','biller_mobile','bill_from','bill_to','bill_gen_date','bill_due_date','bill_total_amount','charge','transaction_id','payment_date')->where('id', $bill_id)->first();
-                        return response()->json(array("result" => "success", "data"=>$billData));
-                    }
+						return response()->json([
+							"result" => "success",
+							"status_code" => "1008",
+							"data" => $billData ?? [],
+							"bill_payment_id" => $req->bill_payment_id ?? "",
+							"client_ref" => $req->client_ref ?? "",
+							"bill_ref_id" => $req->bill_ref_id ?? ""
+						]);                    }
                 }
                 else
                 {
                 	$tdata["type"]="failed message for bill ".$bill_payment_id;
                 	$tdata["testdata"]='insufficient balance';
                 	DB::table('test2')->insert($tdata);
-                	return response()->json(array("result" => "failed", 'message'=>'Insufficient Balance.'));
+                	return response()->json(array("result" => "failed","status_code" => "1007", 'message'=>'Insufficient Balance.'));
                 }
 
             } catch (\Exception $e) {
@@ -670,7 +710,7 @@ class BillPay extends Controller
         	$tdata["testdata"]='Invalid Payment Process';
         	DB::table('test2')->insert($tdata);
 
-        	return response()->json(array("result" => "failed", 'message'=>'Invalid Payment Process.'));
+        	return response()->json(array("result" => "failed","status_code" => "1007", 'message'=>'Invalid Payment Process.'));
         }
     }
     else
@@ -679,62 +719,168 @@ class BillPay extends Controller
     	$tdata["testdata"]='Invalid token';
     	DB::table('test2')->insert($tdata);
 
-    	return response()->json(array("result" => "failed", 'message'=>'Invalid token'.$token));
+    	return response()->json(array("result" => "failed","status_code" => "1007", 'message'=>'Invalid token'.$token));
     }
 
 
 	}
 
 
-	public function checkBillPaymentStatus(Request $req) {
+public function checkBillPaymentStatus(Request $req) {
+    $token = $req->header('token');
 
-        $token = $req->header('token');
+    // Handle expiry token
+    if (str_starts_with($token, 'pathaoExpiry')) {
+        $checkResult = $this->checkExpiryToken($token);
 
-		$ccObj = new CommonController();
-		$cData = $ccObj->getCustomerInfoFromToken($token);
-
-        if($cData)
-		{
-            $ref_id = $req->ref_id;
-
-            $result = DB::table('bill_payment as bp')
-                        ->select('bp.status', 'bp.bill_no', 'b.name as biller', 'bp.created_at')
-                        ->leftJoin('biller as b', 'bp.biller_id', '=', 'b.id')
-                        ->where('bp.ref_id', $ref_id)
-						->where('bp.acc_no', $cData->acc_no)
-                        ->first();
-
-            if ($result) {
-                $statusText = 'Unknown';
-                if ($result->status == 1) {
-                    $statusText = 'Unpaid';
-                } elseif ($result->status == 2) {
-                    $statusText = 'Paid';
-                }
-
-                $response = [
-                    'status' => $statusText,
-                    'bill_no' => $result->bill_no,
-                    'biller' => $result->biller
-                ];
-
-                if ($result->status == 2) {
-                    $response['payment_date_time'] = $result->created_at;
-                }
-
-                return response()->json($response);
-            } else {
-                return response()->json([
-                    'error' => 'No bill payment found for the provided ref_id.'
-                ], 404);
-            }
-        } else {
+        if ($checkResult->original['status'] == 'failed') {
             return response()->json([
-                'error' => 'No customer found by the provided token'
-            ], 404);
+                "status_code" => "1001", // token expired/invalid
+                "status"      => "Failed",
+                "message"     => $checkResult->original['message']
+            ], 200);
+        } else {
+            // override token if valid
+            $token = 'QkDVzVbfoQYh40QdqcpeElEmiZJk1hf9iAMbW6nq';
         }
-
     }
+
+    $ccObj = new CommonController();
+    $cData = $ccObj->getCustomerInfoFromToken($token);
+
+    if ($cData) {
+        $ref_id = $req->ref_id;
+
+        $result = DB::table('bill_payment as bp')
+            ->select('bp.status', 'bp.bill_no', 'b.name as biller', 'bp.created_at')
+            ->leftJoin('biller as b', 'bp.biller_id', '=', 'b.id')
+            ->where('bp.acc_no', $cData->acc_no)
+            ->where(function ($query) use ($ref_id) {
+                $query->where('bp.ref_id', $ref_id)
+                      ->orWhere('bp.client_ref', $ref_id);
+            })
+            ->first();
+
+        if ($result) {
+            // determine readable status
+            if ($result->status == 1) {
+                $statusText = 'Unpaid';
+            } elseif ($result->status == 2) {
+                $statusText = 'Paid';
+            } else {
+                $statusText = 'Unknown';
+            }
+
+            // prepare response
+            $response = [
+                "status_code" => $result->status == 2 ? "0000" : "1002", // success or unpaid
+                "status"      => $statusText,
+                "bill_no"     => $result->bill_no,
+                "biller"      => $result->biller
+            ];
+
+            if ($result->status == 2) {
+                $response["payment_date_time"] = $result->created_at;
+            }
+
+            return response()->json($response, 200);
+        } else {
+            // reference not found
+            return response()->json([
+                "status_code" => "1003",
+                "status"      => "Not Found",
+                "error"       => "No bill payment found for the provided reference."
+            ], 200);
+        }
+    } else {
+        // customer not found
+        return response()->json([
+            "status_code" => "1004",
+            "status"      => "Invalid Token",
+            "error"       => "No customer found by the provided token"
+        ], 200);
+    }
+}
+
+
+public function checkBillPaymentStatusSandbox(Request $req) {
+    $token = $req->header('token');
+
+    // Handle expiry token
+    if (str_starts_with($token, 'pathaoExpiry')) {
+        $checkResult = $this->checkExpiryTokenSandbox($token);
+
+        if ($checkResult->original['status'] == 'failed') {
+            return response()->json([
+                "status_code" => "1001", // token expired/invalid
+                "status"      => "Failed",
+                "message"     => $checkResult->original['message']
+            ], 200);
+        } else {
+            // override token if valid
+            $token = 'QkDVzVbfoQYh40QdqcpeElEmiZJk1hf9iAMbW6nq';
+        }
+    }
+
+    $ccObj = new CommonController();
+    $cData = $ccObj->getCustomerInfoFromToken($token);
+
+    if ($cData) {
+        $ref_id = $req->ref_id;
+
+        $result = DB::table('bill_payment_sandbox as bp')
+            ->select('bp.status', 'bp.bill_no', 'b.name as biller', 'bp.created_at')
+            ->leftJoin('biller as b', 'bp.biller_id', '=', 'b.id')
+            ->where(function ($query) use ($ref_id) {
+                $query->where('bp.ref_id', $ref_id)
+                      ->orWhere('bp.client_ref', $ref_id);
+            })
+            ->first();
+
+        if ($result) {
+            // determine readable status
+            if ($result->status == 1) {
+                $statusText = 'Unpaid';
+            } elseif ($result->status == 2) {
+                $statusText = 'Paid';
+            } else {
+                $statusText = 'Unknown';
+            }
+
+            // prepare response
+            $response = [
+                "status_code" => $result->status == 2 ? "0000" : "1002", // success or unpaid
+                "status"      => $statusText,
+                "bill_no"     => $result->bill_no,
+                "biller"      => $result->biller
+            ];
+
+            if ($result->status == 2) {
+                $response["payment_date_time"] = $result->created_at;
+            }
+
+            return response()->json($response, 200);
+        } else {
+            // reference not found
+            return response()->json([
+                "status_code" => "1003",
+                "status"      => "Not Found",
+                "error"       => "No bill payment found for the provided reference."
+            ], 200);
+        }
+    } else {
+        // customer not found
+        return response()->json([
+            "status_code" => "1004",
+            "status"      => "Invalid Token",
+            "error"       => "No customer found by the provided token"
+        ], 200);
+    }
+}
+
+
+
+
 
 
 public function getEkpayBalance()
@@ -1113,7 +1259,7 @@ public function billPaymentChargePreview(Request $req)
 			$checkResult= $this->checkExpiryToken($token);
 
 			if($checkResult->original['status']== 'failed') {
-				return response()->json(array("result" => "failed", 'message'=>$checkResult->original['message']));
+				return response()->json(array("result" => "failed","status_code" => "1001", 'message'=>$checkResult->original['message']));
 			} else {
 				$token = 'QkDVzVbfoQYh40QdqcpeElEmiZJk1hf9iAMbW6nq';
 			}
@@ -1121,7 +1267,7 @@ public function billPaymentChargePreview(Request $req)
 
 
 		if($this->checkBIllerMobile($req)=="failed"){
-			return response()->json(array("result" => "failed", 'message'=>'Please enter valid mobile no.'));
+			return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>'Please enter valid mobile no.'));
 		}
 
 		$mobNo="";
@@ -1206,7 +1352,7 @@ public function billPaymentChargePreview(Request $req)
 								if (($cData->acc_no == "22294")) {
 
 									if ($insData["bill_amount"] > 3000) {
-										return response()->json(array("result" => "failed", 'message'=>'Amount cannot be greater than 3000 taka'));
+										return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>'Amount cannot be greater than 3000 taka'));
 									}
 
 								}
@@ -1218,6 +1364,7 @@ public function billPaymentChargePreview(Request $req)
 										if ($amount > 5000) {
 											return response()->json([
 												"result" => "failed",
+												"status_code" => "1005",
 												"message" => "Bill amount more than 5000 is not accepted."
 											]);
 											exit();
@@ -1257,38 +1404,38 @@ public function billPaymentChargePreview(Request $req)
 
 								$rspData = array_map('strval', $rspData);
 								$invoice=$this->billInvoiceDisplay($id);
-								return response()->json(array("result" => "success", "bill_ref"=>$bill_ref, 'data'=>$rspData, 'invoice'=>$invoice));
+								return response()->json(array("result" => "success","status_code" => "1006", "bill_ref"=>$bill_ref, 'data'=>$rspData, 'invoice'=>$invoice));
 							} catch (\Exception $e) {
-								return response()->json(array("result"=>"failed", "message"=>$e->getMessage()));
+								return response()->json(array("result"=>"failed","status_code" => "1005", "message"=>$e->getMessage()));
 							}
 						}
 						else
 						{
-							return response()->json(array("result" => "failed", 'message'=>'Bill not found'));
+							return response()->json(array("result" => "failed", "status_code" => "1005", 'message'=>'Bill not found'));
 						}
 					}
 					else if(isset($resArray->resp_status->rsp_msg) && $resArray->resp_status->rsp_cd != "0000")
 					{
-						return response()->json(array("result" => "failed", 'message'=>$resArray->resp_status->rsp_msg));
+						return response()->json(array("result" => "failed", "status_code" => "1005", 'message'=>$resArray->resp_status->rsp_msg));
 					}
 					else
 					{
-						return response()->json(array("result" => "failed", 'message'=>'Bill not found'));
+						return response()->json(array("result" => "failed", "status_code" => "1005", 'message'=>'Bill not found'));
 					}
 				}
 				else
 				{
-					return response()->json(array("result" => "failed", 'message'=>'Bill payment process failed'));
+					return response()->json(array("result" => "failed", "status_code" => "1005", 'message'=>'Bill payment process failed'));
 				}
 			}
 			else
 			{
-				return response()->json(array("result" => "failed", 'message'=>'Enter valid bill number.'));
+				return response()->json(array("result" => "failed", "status_code" => "1005", 'message'=>'Enter valid bill number.'));
 			}
 		}
 		else
 		{
-			return response()->json(array("result" => "failed", 'message'=>'Invalid token'));
+			return response()->json(array("result" => "failed",  "status_code" => "1001", 'message'=>'Invalid token'));
 		}
 	}
 
@@ -1492,7 +1639,6 @@ public function billPaymentChargePreview(Request $req)
 
 	public function fetchPalliBidyutPostpaid(Request $req)
 	{
-
 		$sResponse['type'] = "pallibiddut request test bl";
 		$sResponse['testdata'] = json_encode($req->all());
 		DB::table('test2')->insert($sResponse);
@@ -1501,205 +1647,130 @@ public function billPaymentChargePreview(Request $req)
 		$endOfDay = date('Y-m-d') . ' 23:59:59';
 		
 		$billCount = DB::table('bill_payment')
-		->where('biller_mobile', $req->biller_mobile_no)
-		->where('status', 1)
-		->where('biller_id', 6)
-		->whereBetween('created_at', [$startOfDay, $endOfDay])
-		->get();
+			->where('biller_mobile', $req->biller_mobile_no)
+			->where('status', 1)
+			->where('biller_id', 6)
+			->whereBetween('created_at', [$startOfDay, $endOfDay])
+			->get();
 
-		$totalCount = count($billCount);
-		
-		if($totalCount >= 5){
-			return response()->json(array("result" => "failed", 'message'=> 'Try with another number. You can try 5 times with same mobile number today'));
+		if (count($billCount) >= 5) {
+			return response()->json([
+				"status_code" => "1005",
+				"result" => "failed",
+				"message"=> "Try with another number. You can try 5 times with same mobile number today"
+			]);
 		}
 
 		$token = $req->header('token');
-		$bill_no=$req->bill_no;
-		$bill_month=$req->bill_month;
-		$bill_year=$req->bill_year;
-		$biller_mobile_no=$req->biller_mobile_no;
+		$bill_no = $req->bill_no;
+		$bill_month = $req->bill_month;
+		$bill_year = $req->bill_year;
+		$biller_mobile_no = $req->biller_mobile_no;
 
 		if (str_starts_with($token, 'pathaoExpiry')) {
-                
 			$checkResult= $this->checkExpiryToken($token);
-			
 			if($checkResult->original['status']== 'failed') {
-				return response()->json(array("result" => "failed", 'message'=>$checkResult->original['message']));
+				return response()->json(["result" => "failed", "status_code" => "1001", "message"=>$checkResult->original['message']]);
 			} else {
 				$token = 'QkDVzVbfoQYh40QdqcpeElEmiZJk1hf9iAMbW6nq';
 			}
-        }
+		}
 
 		if($this->checkBIllerMobile($req)=="failed"){
-			return response()->json(array("result" => "failed", 'message'=>'Please enter valid mobile no.'));
+			return response()->json(["result" => "failed","status_code" => "1005", "message"=>'Please enter valid mobile no.']);
 		}
 
-		$mobNo="";
-		if(isset($req->biller_mobile_no)){
-			$mobNo=$req->biller_mobile_no;
-		}
+		$mobNo = $req->biller_mobile_no ?? "";
 
 		$ccObj = new CommonController();
 		if($token == 'MY1kbzWPAVcYJYLBfRtMl86C06fqBosbqmfs7EVjCnFaMQP9fSBL') {
-
-			$cData = (object)[];
-			$cData->acc_no = '1005';
-            // $acc_no = '1005';
+			$cData = (object) ['acc_no' => '1005'];
 		} else {
 			$cData = $ccObj->getCustomerInfoFromToken($token);
-
-            // $acc_no = $cData->acc_no;
 		}
-		if($cData)
-		{
-			if(isset($req->is_bill_save) && $req->is_bill_save=="true"){
-				$nickName="";
-				if(isset($req->bill_save_nick_name)){
-					$nickName=$req->bill_save_nick_name;
-				}
-				$this->saveBillAsFavorite($cData->acc_no, 6, $bill_no, $nickName);
-			}
-			if(!empty($bill_no))
-			{
-				$pw = new PayWell();
-				$tokenData=$pw->getToken();
-				//print_r($tokenData);
-				//exit();
-				if($tokenData["status"]=="success")
-				{
-					$token=$tokenData["token"];
-					$trxId=$this->randString(32);
-					$resArray=$pw->fetchPalliBidyutPostpaidBill($token, $bill_no, $trxId, $bill_month, $bill_year, $biller_mobile_no);
 
-					$tdata["type"]="palli vidyutt fetch".$bill_no;
-					$tdata["testdata"]=json_encode($resArray);
-					DB::table('test2')->insert($tdata);
-
-					if($resArray["status"]=="success")
-					{
-						$billData=$resArray["billData"];
-						$bearerToken=$resArray["bearerToken"];
-
-
-
-						$resArray=$resArray["data"];
-						//print_r($resArray);
-						if($resArray->Status==815)
-						{
-							$insData["bill_name"]="Palli Bidyut Postpaid";
-							$insData["bill_no"]=$resArray->BillNo;
-							$insData["biller_mobile"]=$mobNo;
-							$insData["bill_to"]=$bill_year."-".$bill_month;
-							$insData["bill_due_date"]=$resArray->due_date;
-							$insData["bill_amount"]=$resArray->BillAmount;
-
-							if (($cData->acc_no == "22294")) {
-
-								if ($insData["bill_amount"] > 3000) {
-									return response()->json(array("result" => "failed", 'message'=>'Amount cannot be greater than 3000 taka'));
-								}
-
-							}
-
-
-
-							$amount = $resArray->BillAmount;
-							if ($cData && ($cData->remark == 'Corporate' || $cData->remark == 'Agent')) {
-								if ($amount > 5000) {
-									return response()->json([
-										"result" => "failed",
-										"message" => "Bill amount more than 5000 is not accepted."
-									]);
-									exit();
-								}
-							}
-
-							$insData["charge"]=$this->billCharge($cData->acc_no, $resArray->BillAmount);
-							$insData["bill_total_amount"]=$resArray->BillAmount+$this->billCharge($cData->acc_no, $resArray->BillAmount);
-
-							$insData["is_bill_paid"]="N";
-							$insData["bllr_id"]="pbp200";
-
-							$rspData=$insData;
-
-							$insData["ekpay_fee"]=$resArray->ExtraCharge;
-							$insData["gateway_id"]=2;
-							$insData["biller_id"]=6;
-							$insData["biller_cat_id"]=1;
-							$insData["acc_no"]=$cData->acc_no;
-							$insData["trx_id"]=$resArray->TrxId;
-							$insData["ref_id"]=$trxId;
-							$insData["ref_no_ack"]=$resArray->TrxId;
-							$insData["bill_type"]="";
-							$insData["message"]=$resArray->StatusName;
-							$insData["bllr_inf"]=json_encode($resArray);
-
-							$insData["container_1"]=$bearerToken;
-							$insData["container_2"]=$billData;
-
-							$pw = new PayWell();
-
-							$rebBalance = $pw->balanceCheck();
-
-
-							try{
-
-								$tdata["type"]="paywell balance response fetch ID:".$resArray->BillNo;
-								$tdata["testdata"]=json_encode($rebBalance);
-								DB::table('test2')->insert($tdata);
-
-							} catch (\Exception $e) {
-
-								$tdata["type"]="paywell balance response fetch error ID: ".$resArray->BillNo;
-								$tdata["testdata"]=$e->getMessage();
-								DB::table('test2')->insert($tdata);
-
-							}
-
-
-							$insData["pre_bal"]= $rebBalance->original['reb'];
-
-							$id = DB::table('bill_payment')->insertGetId($insData);
-
-							$bill_ref["bill_payment_id"]=$id;
-							$bill_ref["bill_refer_id"]=$trxId;
-
-
-							$rspData = array_map('strval', $rspData);
-							$invoice=$this->billInvoiceDisplay($id);
-
-							$tdata["type"]="palli vidyutti err final".$bill_no;
-							$tdata["testdata"]=json_encode(array("result" => "success", "bill_ref"=>$bill_ref, 'data'=>$rspData, 'invoice'=>$invoice));
-							DB::table('test2')->insert($tdata);
-							return response()->json(array("result" => "success", "bill_ref"=>$bill_ref, 'data'=>$rspData, 'invoice'=>$invoice));
-						}
-						else
-						{
-
-							$tdata["type"]="palli vidyut fetch response status".$bill_no;
-							$tdata["testdata"]=$resArray->StatusName;
-							DB::table('test2')->insert($tdata);
-							return response()->json(array("result" => "failed", 'message'=>$resArray->StatusName));
-						}
-					}
-					else
-					{
-						return response()->json(array("result" => "failed", 'message'=>$resArray["message"]));
-					}
-				}
-				else
-				{
-					return response()->json(array("result" => "failed", 'message'=>$tokenData["message"]));
-				}
-			}
-			else
-			{
-				return response()->json(array("result" => "failed", 'message'=>'Enter valid bill number.'));
-			}
+		if(!$cData) {
+			return response()->json(["result" => "failed","status_code" => "1001", "message"=>'Invalid token']);
 		}
-		else
+
+		if(isset($req->is_bill_save) && $req->is_bill_save=="true"){
+			$nickName = $req->bill_save_nick_name ?? "";
+			$this->saveBillAsFavorite($cData->acc_no, 6, $bill_no, $nickName);
+		}
+
+		if(empty($bill_no)) {
+			return response()->json(["result" => "failed","status_code" => "1005", "message"=>'Enter valid bill number.']);
+		}
+
+		$pw = new PayWell();
+		$tokenData=$pw->getToken();
+		if($tokenData["status"]!="success") {
+			return response()->json(["result" => "failed","status_code" => "1005", "message"=>$tokenData["message"]]);
+		}
+
+		$token=$tokenData["token"];
+		$trxId=$this->randString(32);
+		$resArray=$pw->fetchPalliBidyutPostpaidBill($token, $bill_no, $trxId, $bill_month, $bill_year, $biller_mobile_no);
+
+		$tdata["type"]="palli vidyutt fetch".$bill_no;
+		$tdata["testdata"]=json_encode($resArray);
+		DB::table('test2')->insert($tdata);
+
+		if($resArray["status"]!="success") {
+			return response()->json(["result" => "failed","status_code" => "1005", "message"=>$resArray["message"]]);
+		}
+
+		$billData=$resArray["billData"];
+		$bearerToken=$resArray["bearerToken"];
+		$resArray=$resArray["data"];
+
+		if($resArray->Status==815 || $resArray->Status==303)
 		{
-			return response()->json(array("result" => "failed", 'message'=>'Invalid token'));
+			$billAmount = (isset($resArray->BillAmount) && is_numeric($resArray->BillAmount)) 
+				? (float) $resArray->BillAmount 
+				: 0;
+
+			$extraCharge = (isset($resArray->ExtraCharge) && is_numeric($resArray->ExtraCharge)) 
+				? (float) $resArray->ExtraCharge 
+				: 0;
+
+			$charge = $billAmount > 0
+				? $this->billCharge($cData->acc_no, $billAmount)
+				: 0;
+
+			$responseData = [
+				"bill_name"        => "PalliBidyutPostpaid",
+				"bill_no"          => (string) ($resArray->BillNo ?? "EMPTY_BILL_NO"),
+				"biller_acc_no"    => (string) ($cData->acc_no ?? "EMPTY_ACC_NO"),
+				"biller_mobile"    => (string) ($mobNo ?? "DUMMY_MOBILE"),
+				"bill_address"     => (string) ($resArray->Address ?? "DUMMY_ADDRESS"),
+				"bill_due_date"    => (string) ($resArray->due_date ?? "DUMMY_DUE_DATE"),
+
+				// ✅ Cast to string
+				"bill_amount"      => (string) ($billAmount ?? "0"),
+				"bill_vat"         => (string) ($resArray->VAT ?? "0"),
+				"bill_late_fee"    => (string) ($resArray->LateFee ?? "0"),
+				"charge"           => (string) ($charge ?? "0"),
+				"bill_total_amount"=> (string) (($billAmount ?? "0") + ($charge ?? "0")),
+
+				"bill_month"       => (string) ($bill_month ?? "DUMMY_MONTH"),
+				"bill_year"        => (string) ($bill_year ?? "DUMMY_YEAR"),
+
+				"is_bill_paid"     => ($resArray->Status == 303) ? "Y" : "N",
+				"bllr_id"          => "pbp200"
+			];
+
+			return response()->json([
+				"status_code" => "1006",
+				"result" => "success",
+				"data" => $responseData
+			]);
+		}
+		else {
+			$tdata["type"]="palli vidyut fetch response status".$bill_no;
+			$tdata["testdata"]=$resArray->StatusName;
+			DB::table('test2')->insert($tdata);
+			return response()->json(["result" => "failed","status_code" => "1005", "message"=>$resArray->StatusName]);
 		}
 	}
 
@@ -1810,6 +1881,26 @@ public function billPaymentChargePreview(Request $req)
 
 								$id = DB::table('bill_payment')->insertGetId($insData);
 
+
+								$rspData = [
+									"bill_name" => $insData["bill_name"] ?? '',
+									"bill_no" => $insData["bill_no"] ?? '',
+									"biller_acc_no" => $insData["biller_acc_no"] ?? '',
+									"biller_mobile" => $insData["biller_mobile"] ?? '',
+									"bill_address" => $insData["bill_address"] ?? '',
+									"bill_from" => $insData["bill_from"] ?? '',
+									"bill_to" => $insData["bill_to"] ?? '',
+									"bill_gen_date" => $insData["bill_gen_date"] ?? '',
+									"bill_due_date" => $insData["bill_due_date"] ?? '',
+									"bill_amount" => $insData["bill_amount"] ?? '',
+									"bill_vat" => $insData["bill_vat"] ?? '',
+									"bill_late_fee" => $insData["bill_late_fee"] ?? '',
+									"charge" => $insData["charge"] ?? '',
+									"bill_total_amount" => $insData["bill_total_amount"] ?? '',
+									"is_bill_paid" => $insData["is_bill_paid"] ?? 'N',
+									"bllr_id" => $insData["bllr_id"]
+								];
+
 								$bill_ref["bill_payment_id"]=$id;
 								$bill_ref["bill_refer_id"]=$trxId;
 								$rspData = array_map('strval', $rspData);
@@ -1884,7 +1975,7 @@ public function billPaymentChargePreview(Request $req)
 			$checkResult= $this->checkExpiryToken($token);
 			
 			if($checkResult->original['status']== 'failed') {
-				return response()->json(array("result" => "failed", 'message'=>$checkResult->original['message']));
+				return response()->json(array("result" => "failed","status_code" => "1001", 'message'=>$checkResult->original['message']));
 			} else {
 				$token = 'QkDVzVbfoQYh40QdqcpeElEmiZJk1hf9iAMbW6nq';
 			}
@@ -1894,8 +1985,12 @@ public function billPaymentChargePreview(Request $req)
 		$amount=$req->amount;
 		$biller_mobile_no=$req->biller_mobile_no;
 
-		if($this->checkBIllerMobile($req)=="failed"){
-			return response()->json(array("result" => "failed", 'message'=>'Please enter valid mobile no.'));
+		if (empty($biller_mobile_no) || !preg_match('/^(013|014|015|016|017|018|019)[0-9]{8}$/', $biller_mobile_no)) {
+			return response()->json([
+				"result" => "failed",
+				"status_code" => "1005",
+				"message" => "Please enter valid mobile no."
+			]);
 		}
 
 		$ccObj = new CommonController();
@@ -1906,7 +2001,7 @@ public function billPaymentChargePreview(Request $req)
 			if (($cData->acc_no == "22294")) {
 
 				if ($amount > 3000) {
-					return response()->json(array("result" => "failed", 'message'=>'Amount cannot be greater than 3000 taka'));
+					return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>'Amount cannot be greater than 3000 taka'));
 				}
 
 			}
@@ -2010,35 +2105,56 @@ public function billPaymentChargePreview(Request $req)
 								$bill_ref["bill_refer_id"]=$trxId;
 
 
+
+								$rspData = [
+									"bill_name" => $insData["bill_name"] ?? '',
+									"bill_no" => $insData["bill_no"] ?? '',
+									"biller_acc_no" => $insData["biller_acc_no"] ?? '',
+									"biller_mobile" => $insData["biller_mobile"] ?? '',
+									"bill_address" => $insData["bill_address"] ?? '',
+									"bill_from" => $insData["bill_from"] ?? '',
+									"bill_to" => $insData["bill_to"] ?? '',
+									"bill_gen_date" => $insData["bill_gen_date"] ?? '',
+									"bill_due_date" => $insData["bill_due_date"] ?? '',
+									"bill_amount" => $insData["bill_amount"] ?? '',
+									"bill_vat" => $insData["bill_vat"] ?? '',
+									"bill_late_fee" => $insData["bill_late_fee"] ?? '',
+									"charge" => $insData["charge"] ?? '',
+									"bill_total_amount" => $insData["bill_total_amount"] ?? '',
+									"is_bill_paid" => $insData["is_bill_paid"] ?? '',
+									"bllr_id" => $insData["bllr_id"]
+								];
+
+
 								$invoice=$this->billInvoiceDisplay($id);
-								return response()->json(array("result" => "success", "bill_ref"=>$bill_ref, 'data'=>$rspData, 'invoice' => $invoice));
+								return response()->json(array("result" => "success","status_code" => "1006", "bill_ref"=>$bill_ref, 'data'=>$rspData, 'invoice' => $invoice));
 							} catch (\Exception $e) {
-								return response()->json(array("result"=>"failed", "message"=>$e->getMessage()));
+								return response()->json(array("result"=>"failed","status_code" => "1005", "message"=>$e->getMessage()));
 							}
 						}
 						else
 						{
-							return response()->json(array("result" => "failed", 'message'=>'Bill not found'));
+							return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>'Bill not found'));
 						}
 					}
 					else
 					{
-						return response()->json(array("result" => "failed", 'message'=>$resArray->resp_status->rsp_msg));
+						return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>$resArray->resp_status->rsp_msg));
 					}
 				}
 				else
 				{
-					return response()->json(array("result" => "failed", 'message'=>'Bill payment process failed'));
+					return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>'Bill payment process failed'));
 				}
 			}
 			else
 			{
-				return response()->json(array("result" => "failed", 'message'=>'Enter valid bill number.'));
+				return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>'Enter valid bill number.'));
 			}
 		}
 		else
 		{
-			return response()->json(array("result" => "failed", 'message'=>'Invalid token'));
+			return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>'Invalid token'));
 		}
 
 
@@ -2474,6 +2590,7 @@ public function billPaymentChargePreview(Request $req)
 
 	public function fetchWestZonePowerPostpaid(Request $req)
 	{
+
 		$token = $req->header('token');
 		$biller_acc_no=$req->biller_acc_no;
 
@@ -2483,7 +2600,7 @@ public function billPaymentChargePreview(Request $req)
 			$checkResult= $this->checkExpiryToken($token);
 			
 			if($checkResult->original['status']== 'failed') {
-				return response()->json(array("result" => "failed", 'message'=>$checkResult->original['message']));
+				return response()->json(array("result" => "failed","status_code" => "1001", 'message'=>$checkResult->original['message']));
 			} else {
 				$token = 'QkDVzVbfoQYh40QdqcpeElEmiZJk1hf9iAMbW6nq';
 			}
@@ -2495,7 +2612,7 @@ public function billPaymentChargePreview(Request $req)
 		}
 
 		if($this->checkBIllerMobile($req)=="failed"){
-			return response()->json(array("result" => "failed", 'message'=>'Please enter valid mobile no.'));
+			return response()->json(array("result" => "failed", "status_code" => "1005", 'message'=>'Please enter valid mobile no.'));
 		}
 
 		$ccObj = new CommonController();
@@ -2539,7 +2656,7 @@ public function billPaymentChargePreview(Request $req)
 								if (($cData->acc_no == "22294")) {
 
 									if ($insData["bill_amount"] > 3000) {
-										return response()->json(array("result" => "failed", 'message'=>'Amount cannot be greater than 3000 taka'));
+										return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>'Amount cannot be greater than 3000 taka'));
 									}
 
 								}
@@ -2549,6 +2666,7 @@ public function billPaymentChargePreview(Request $req)
 									if ($amount > 5000) {
 										return response()->json([
 											"result" => "failed",
+											"status_code" => "1005",
 											"message" => "Bill amount more than 5000 is not accepted."
 										]);
 										exit();
@@ -2582,218 +2700,257 @@ public function billPaymentChargePreview(Request $req)
 								$rspData = array_map('strval', $rspData);
 
 								$invoice=$this->billInvoiceDisplay($id);
-								return response()->json(array("result" => "success", "bill_ref"=>$bill_ref, 'data'=>$rspData, 'invoice'=>$invoice));
+
+
+																$rspData = [
+									"bill_name"         => "West Zone Postpaid",
+									"bill_no"           => $resArray->bllr_inf->bll_no ?? "",
+									"biller_acc_no"     => $resArray->bllr_inf->bllr_accno ?? "",
+									"biller_mobile"     => $mobNo,
+									"bill_address"      => $resArray->bllr_inf->bll_add ?? "",
+									"bill_from"         => $resArray->bllr_inf->bll_dt_frm ?? "",
+									"bill_to"           => $resArray->bllr_inf->bll_dt_to ?? "",
+									"bill_gen_date"     => $resArray->bllr_inf->bill_gen_date ?? "",
+									"bill_due_date"     => $resArray->bllr_inf->bll_dt_due ?? "",
+									"bill_amount"       => strval($resArray->bllr_inf->bll_amnt ?? 0),
+									"bill_vat"          => strval($resArray->bllr_inf->bll_vat ?? 0),
+									"bill_late_fee"     => strval($resArray->bllr_inf->bill_late_fee ?? 0),
+									"charge"            => strval(($resArray->bllr_inf->ekpay_fee ?? 0) 
+															+ $this->billChargeTest($cData->acc_no, $resArray->bllr_inf->bll_amnt_ttl ?? 0, $mobNo)),
+									"bill_total_amount" => strval(($resArray->bllr_inf->bll_amnt_ttl ?? 0) 
+															+ $this->billChargeTest($cData->acc_no, $resArray->bllr_inf->bll_amnt_ttl ?? 0, $mobNo)),
+									"is_bill_paid"      => $resArray->bllr_inf->is_bll_pd ?? "N",
+									"bllr_id"           => $resArray->bllr_inf->bllr_id ?? "",
+								];
+								return response()->json(array("result" => "success","status_code" => "1006", "bill_ref"=>$bill_ref, 'data'=>$rspData, 'invoice'=>$invoice));
 
 							} catch (\Exception $e) {
-								return response()->json(array("result"=>"failed", "message"=>$e->getMessage()));
+								return response()->json(array("result"=>"failed","status_code" => "1005", "message"=>$e->getMessage()));
 							}
 						}
 						else
 						{
-							return response()->json(array("result" => "failed", 'message'=>'Bill not found'));
+							return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>'Bill not found'));
 						}
 					}
 					else if(isset($resArray->resp_status->rsp_msg) && $resArray->resp_status->rsp_cd != "0000")
 					{
-						return response()->json(array("result" => "failed", 'message'=>$resArray->resp_status->rsp_msg));
+						return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>$resArray->resp_status->rsp_msg));
 					}
 					else
 					{
-						return response()->json(array("result" => "failed", 'message'=>'Bill not found'));
+						return response()->json(array("result" => "failed", "status_code" => "1005", 'message'=>'Bill not found'));
 					}
 				}
 				else
 				{
-					return response()->json(array("result" => "failed", 'message'=>'Bill payment process failed'));
+					return response()->json(array("result" => "failed", "status_code" => "1005", 'message'=>'Bill payment process failed'));
 				}
 			}
 			else
 			{
-				return response()->json(array("result" => "failed", 'message'=>'Enter valid bill number.'));
+				return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>'Enter valid bill number.'));
 			}
 		}
 		else
 		{
-			return response()->json(array("result" => "failed", 'message'=>'Invalid token'));
+			return response()->json(array("result" => "failed","status_code" => "1001", 'message'=>'Invalid token'));
 		}
 	}
 
-	public function fetchDhakaWasa(Request $req)
-	{
+public function fetchDhakaWasa(Request $req)
+{
+    $token = $req->header('token');
+    $bill_no = $req->bill_no;
 
-		$token = $req->header('token');
-		$bill_no=$req->bill_no;
-		$bill_type="NM";
+    // Handle expired token
+    if (str_starts_with($token, 'pathaoExpiry')) {
+        $checkResult = $this->checkExpiryToken($token);
+        if ($checkResult->original['status'] == 'failed') {
+            return response()->json([
+                "result" => "failed",
+                "status_code" => "1001",
+                "message" => $checkResult->original['message']
+            ]);
+        } else {
+            $token = 'QkDVzVbfoQYh40QdqcpeElEmiZJk1hf9iAMbW6nq';
+        }
+    }
 
-		if (str_starts_with($token, 'pathaoExpiry')) {
-                
-			$checkResult= $this->checkExpiryToken($token);
-			
-			if($checkResult->original['status']== 'failed') {
-				return response()->json(array("result" => "failed", 'message'=>$checkResult->original['message']));
-			} else {
-				$token = 'QkDVzVbfoQYh40QdqcpeElEmiZJk1hf9iAMbW6nq';
-			}
+    $mobNo = $req->biller_mobile_no ?? "";
+
+    // Validate mobile
+    if ($this->checkBIllerMobile($req) == "failed") {
+        return response()->json([
+            "result" => "failed",
+            "status_code" => "1005",
+            "message" => "Please enter valid mobile no."
+        ]);
+    }
+
+    // Get customer data
+    $ccObj = new CommonController();
+    $cData = $ccObj->getCustomerInfoFromToken($token);
+    if (!$cData) {
+        return response()->json([
+            "result" => "failed",
+            "status_code" => "1005",
+            "message" => "Invalid token"
+        ]);
+    }
+
+    // Save bill as favorite if requested
+    if (isset($req->is_bill_save) && $req->is_bill_save == "true") {
+        $nickName = $req->bill_save_nick_name ?? "";
+        $this->saveBillAsFavorite($cData->acc_no, 8, $bill_no, $nickName);
+    }
+
+    if (empty($bill_no)) {
+        return response()->json([
+            "result" => "failed",
+            "status_code" => "1005",
+            "message" => "Enter valid bill number."
+        ]);
+    }
+
+    // Get ekpay token
+    $ekObj = new Ekpay();
+    $tokenData = $ekObj->getToken();
+    if ($tokenData["status"] != "success") {
+        return response()->json([
+            "result" => "failed",
+            "status_code" => "1005",
+            "message" => "Bill payment process failed"
+        ]);
+    }
+
+    $token = $tokenData["token"];
+    $trxId = $this->randString(32);
+    $rsdata = $ekObj->fetchDhakaWasaBill($token, $bill_no, $trxId);
+    $resArray = json_decode($rsdata);
+
+    // Debug store
+    DB::table('test2')->insert([
+        "type" => "fetchdhakawasa",
+        "testdata" => json_encode($resArray)
+    ]);
+
+    // Check response
+    if (!isset($resArray->resp_status->rsp_cd) || $resArray->resp_status->rsp_cd != "0000") {
+        $msg = $resArray->resp_status->rsp_msg ?? "Bill not found";
+        return response()->json([
+            "result" => "failed",
+            "status_code" => "1005",
+            "message" => $msg
+        ]);
+    }
+
+    if (!isset($resArray->bllr_inf)) {
+        return response()->json([
+            "result" => "failed",
+            "status_code" => "1005",
+            "message" => "Bill not found"
+        ]);
+    }
+
+    try {
+        // Normalize amounts
+        $amount = floatval($resArray->bllr_inf->bll_amnt_ttl ?? 0);
+        $ekpayFee = floatval($resArray->bllr_inf->ekpay_fee ?? 0);
+        $isPaid = ($resArray->bllr_inf->is_bll_pd ?? "N") === 'Y' ? 'Y' : 'N';
+        $charge = $amount > 0 ? $ekpayFee + $this->billCharge($cData->acc_no, $amount, $mobNo) : 0;
+
+        // Business rules
+        if (($cData->remark ?? '') === 'Corporate' || ($cData->remark ?? '') === 'Agent') {
+            if ($amount > 5000) {
+                return response()->json([
+                    "result" => "failed",
+                    "status_code" => "1005",
+                    "message" => "Bill amount more than 5000 is not accepted."
+                ]);
+            }
         }
 
-		$mobNo="";
-		if(isset($req->biller_mobile_no)){
-			$mobNo=$req->biller_mobile_no;
-		}
+        if ($cData->acc_no === "22294" && $amount > 3000) {
+            return response()->json([
+                "result" => "failed",
+                "status_code" => "1005",
+                "message" => "Amount cannot be greater than 3000 taka"
+            ]);
+        }
 
-		if($this->checkBIllerMobile($req)=="failed"){
-			return response()->json(array("result" => "failed", 'message'=>'Please enter valid mobile no.'));
-		}
+        // Insert data
+        $insData = [
+            "bill_name"         => "Dhaka Wasa",
+            "bill_no"           => $resArray->bllr_inf->bll_no,
+            "bill_amount"       => $amount,
+            "bill_vat"          => 0,
+            "charge"            => $charge,
+            "bill_total_amount" => $amount + $charge,
+            "is_bill_paid"      => $isPaid,
+            "ekpay_fee"         => $ekpayFee,
+            "bllr_id"           => $resArray->bllr_inf->bllr_id,
+            "biller_id"         => 8,
+            "biller_cat_id"     => 3,
+            "acc_no"            => $cData->acc_no,
+            "trx_id"            => $resArray->trx->trx_id,
+            "trx_tms"           => $resArray->trx->trx_tms,
+            "ref_id"            => $resArray->hdrs->ref_id,
+            "ref_no_ack"        => $resArray->resp_status->refno_ack,
+            "bill_type"         => $resArray->bllr_inf->bll_typ,
+            "message"           => $resArray->resp_status->rsp_msg,
+            "bllr_inf"          => json_encode($resArray->bllr_inf),
+        ];
 
-		$ccObj = new CommonController();
-		$cData = $ccObj->getCustomerInfoFromToken($token);
-		if($cData)
-		{
-			if(isset($req->is_bill_save) && $req->is_bill_save=="true"){
-				$nickName="";
-				if(isset($req->bill_save_nick_name)){
-					$nickName=$req->bill_save_nick_name;
-				}
-				$this->saveBillAsFavorite($cData->acc_no, 8, $bill_no, $nickName);
-			}
+        $id = DB::table('bill_payment')->insertGetId($insData);
 
-			if(!empty($bill_no))
-			{
-				$ekObj = new Ekpay();
-				$tokenData=$ekObj->getToken();
-				if($tokenData["status"]=="success")
-				{
-					$token=$tokenData["token"];
-					$trxId=$this->randString(32);
-					$rsdata=$ekObj->fetchDhakaWasaBill($token, $bill_no, $trxId);
-					$resArray=json_decode($rsdata);
+        $bill_ref = [
+            "bill_payment_id" => $id,
+            "bill_refer_id"   => $trxId
+        ];
 
-					$tdata["type"]="fetchdhakawasa";
-					$tdata["testdata"]=json_encode($resArray);
-					DB::table('test2')->insert($tdata);
+        $rspData = [
+            "bill_name"         => $insData["bill_name"],
+            "bill_no"           => $insData["bill_no"],
+            "biller_acc_no"     => $resArray->bllr_inf->bllr_accno ?? "",
+            "biller_mobile"     => $resArray->bllr_inf->bll_mobno ?? "",
+            "bill_address"      => $resArray->bllr_inf->bll_addr ?? "",
+            "bill_from"         => $resArray->bllr_inf->bll_dt_frm ?? "",
+            "bill_to"           => $resArray->bllr_inf->bll_dt_to ?? "",
+            "bill_gen_date"     => $resArray->bllr_inf->bill_gen_date ?? "",
+            "bill_due_date"     => $resArray->bllr_inf->bill_due_date ?? "",
+            "bill_amount"       => strval($insData["bill_amount"]),
+            "bill_vat"          => strval($insData["bill_vat"]),
+            "bill_late_fee"     => strval(floatval($resArray->bllr_inf->bill_late_fee ?? 0)),
+            "charge"            => strval($insData["charge"]),
+            "bill_total_amount" => strval($insData["bill_total_amount"]),
+            "is_bill_paid"      => $insData["is_bill_paid"],
+            "bllr_id"           => $insData["bllr_id"],
+        ];
 
-					//return response()->json(array("result" => "success", 'data'=>$resArray));
-					if(isset($resArray->resp_status->rsp_cd) && $resArray->resp_status->rsp_cd == "0000")
-					{
-						if(isset($resArray->bllr_inf))
-						{
+        $invoice = $this->billInvoiceDisplay($id);
 
-							try
-							{
-								$insData["bill_name"]="Dhaka Wasa";
-								$insData["bill_no"]=$resArray->bllr_inf->bll_no;
-								$insData["bill_amount"]=0;
-								$insData["bill_vat"]=0;
+        return response()->json([
+            "result"      => "success",
+            "status_code" => "1006",
+            "bill_ref"    => $bill_ref,
+            "data"        => $rspData,
+            "invoice"     => $invoice
+        ]);
+    } catch (\Exception $e) {
+        DB::table('test2')->insert([
+            "type" => "dhakawasa error response",
+            "testdata" => $e->getMessage() . ' at line ' . $e->getLine()
+        ]);
 
+        return response()->json([
+            "result"      => "failed",
+            "status_code" => "1005",
+            "message"     => $e->getMessage() . ' at line ' . $e->getLine()
+        ]);
+    }
+}
 
-								if($resArray->bllr_inf->is_bll_pd == 'Y') {
-									return response()->json(array("result" => "failed", 'message'=>'Bill already paid'));
-								}
-
-								if(isset($resArray->bllr_inf->bll_amnt_ttl))
-								{
-									$insData["charge"]=$resArray->bllr_inf->ekpay_fee+$this->billCharge($cData->acc_no, $resArray->bllr_inf->bll_amnt_ttl, $mobNo);
-									$insData["bill_total_amount"]=$resArray->bllr_inf->bll_amnt_ttl+$this->billCharge($cData->acc_no, $resArray->bllr_inf->bll_amnt_ttl, $mobNo);
-									$insData["is_bill_paid"]=$resArray->bllr_inf->is_bll_pd;
-								}
-								else
-								{
-									$insData["charge"]=0;
-									$insData["bill_total_amount"]=0;
-									$insData["is_bill_paid"]="Y";
-								}
-								$insData["bllr_id"]=$resArray->bllr_inf->bllr_id;
-
-								$rspData=$insData;
-
-								$amount = $resArray->bllr_inf->bll_amnt_ttl;
-								if ($cData && ($cData->remark == 'Corporate' || $cData->remark == 'Agent')) {
-									if ($amount > 5000) {
-										return response()->json([
-											"result" => "failed",
-											"message" => "Bill amount more than 5000 is not accepted."
-										]);
-										exit();
-									}
-								}
-
-
-								if (($cData->acc_no == "22294")) {
-
-									if ($amount > 3000) {
-										return response()->json(array("result" => "failed", 'message'=>'Amount cannot be greater than 3000 taka'));
-									}
-
-								}
-
-								$insData["ekpay_fee"]=$resArray->bllr_inf->ekpay_fee;
-								$insData["biller_id"]=8;
-								$insData["biller_cat_id"]=3;
-								$insData["acc_no"]=$cData->acc_no;
-								$insData["trx_id"]=$resArray->trx->trx_id;
-								$insData["trx_tms"]=$resArray->trx->trx_tms;
-								$insData["ref_id"]=$resArray->hdrs->ref_id;
-								$insData["ref_no_ack"]=$resArray->resp_status->refno_ack;
-								$insData["bill_type"]=$resArray->bllr_inf->bll_typ;
-								$insData["message"]=$resArray->resp_status->rsp_msg;
-								$insData["bllr_inf"]=json_encode($resArray->bllr_inf);
-
-
-
-								$id = DB::table('bill_payment')->insertGetId($insData);
-
-								$bill_ref["bill_payment_id"]=$id;
-								$bill_ref["bill_refer_id"]=$trxId;
-
-								$rspData = array_map('strval', $rspData);
-
-								$invoice=$this->billInvoiceDisplay($id);
-								return response()->json(array("result" => "success", "bill_ref"=>$bill_ref, 'data'=>$rspData,'invoice'=>$invoice));
-
-							} catch (\Exception $e) {
-
-								$message = $e->getMessage() . ' at line ' . $e->getLine();
-
-								$tdata["type"]="dhakawasa error response";
-								$tdata["testdata"]=$message;
-								DB::table('test2')->insert($tdata);
-
-								return response()->json([
-									"result" => "failed",
-									"message" => $e->getMessage() . ' at line ' . $e->getLine(),
-									"line" => $insData
-								]);
-							}
-						}
-						else
-						{
-							return response()->json(array("result" => "failed", 'message'=>'Bill not found'));
-						}
-					}
-					else if(isset($resArray->resp_status->rsp_msg) && $resArray->resp_status->rsp_cd != "0000")
-					{
-						return response()->json(array("result" => "failed", 'message'=>$resArray->resp_status->rsp_msg));
-					}
-					else
-					{
-						return response()->json(array("result" => "failed", 'message'=>'Bill not found'));
-					}
-				}
-				else
-				{
-					return response()->json(array("result" => "failed", 'message'=>'Bill payment process failed'));
-				}
-			}
-			else
-			{
-				return response()->json(array("result" => "failed", 'message'=>'Enter valid bill number.'));
-			}
-		}
-		else
-		{
-			return response()->json(array("result" => "failed", 'message'=>'Invalid token'));
-		}
-	}
 
 	public function fetchKhulnaWasa(Request $req)
 	{
@@ -2806,7 +2963,7 @@ public function billPaymentChargePreview(Request $req)
 			$checkResult= $this->checkExpiryToken($token);
 			
 			if($checkResult->original['status']== 'failed') {
-				return response()->json(array("result" => "failed", 'message'=>$checkResult->original['message']));
+				return response()->json(array("result" => "failed","status_code" => "1001", 'message'=>$checkResult->original['message']));
 			} else {
 				$token = 'QkDVzVbfoQYh40QdqcpeElEmiZJk1hf9iAMbW6nq';
 			}
@@ -2820,7 +2977,7 @@ public function billPaymentChargePreview(Request $req)
 
 
 		if($this->checkBIllerMobile($req)=="failed"){
-			return response()->json(array("result" => "failed", 'message'=>'Please enter valid mobile no.'));
+			return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>'Please enter valid mobile no.'));
 		}
 
 		$ccObj = new CommonController();
@@ -2870,6 +3027,7 @@ public function billPaymentChargePreview(Request $req)
 									if ($amount > 5000) {
 										return response()->json([
 											"result" => "failed",
+											"status_code" => "1005",
 											"message" => "Bill amount more than 5000 is not accepted."
 										]);
 										exit();
@@ -2879,7 +3037,7 @@ public function billPaymentChargePreview(Request $req)
 								if (($cData->acc_no == "22294")) {
 
 									if ($amount > 3000) {
-										return response()->json(array("result" => "failed", 'message'=>'Amount cannot be greater than 3000 taka'));
+										return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>'Amount cannot be greater than 3000 taka'));
 									}
 
 								}
@@ -2905,334 +3063,502 @@ public function billPaymentChargePreview(Request $req)
 								$rspData = array_map('strval', $rspData);
 
 								$invoice=$this->billInvoiceDisplay($id);
-								return response()->json(array("result" => "success", "bill_ref"=>$bill_ref, 'data'=>$rspData, 'invoice'=>$invoice));
+
+
+							$rspData = [
+									"bill_name"         => "Khulna wasa",
+									"bill_no"           => $bill_no ?? "",   // 🔹 if bill_no exists in API
+									"biller_acc_no"     => $resArray->bllr_inf->bllr_accno ?? "",
+									"biller_mobile"     => $resArray->bllr_inf->bll_mobno ?? "",
+									"bill_address"      => $resArray->bllr_inf->bll_addr ?? "",
+									"bill_from"         => $resArray->bllr_inf->bll_dt_frm ?? "",
+									"bill_to"           => $resArray->bllr_inf->bll_dt_to ?? "",
+									"bill_gen_date"     => $resArray->bllr_inf->bill_gen_date ?? "",
+									"bill_due_date"     => $resArray->bllr_inf->bill_due_date ?? "",
+									"bill_amount"       => strval($resArray->bllr_inf->bll_amnt ?? 0),
+									"bill_vat"          => strval($resArray->bllr_inf->bill_vat ?? 0),
+									"bill_late_fee"     => strval($resArray->bllr_inf->bill_late_fee ?? 0),
+									"charge"            => strval(($resArray->bllr_inf->ekpay_fee ?? 0) 
+																+ $this->billChargeTest($cData->acc_no, $resArray->bllr_inf->bll_amnt_ttl ?? 0, $mobNo)),
+									"bill_total_amount" => strval(($resArray->bllr_inf->bll_amnt_ttl ?? 0) 
+																+ $this->billChargeTest($cData->acc_no, $resArray->bllr_inf->bll_amnt_ttl ?? 0, $mobNo)),
+									"is_bill_paid"      => $resArray->bllr_inf->is_bll_pd ?? "N",
+									"bllr_id"           => $resArray->bllr_inf->bllr_id ?? "",
+								];
+								return response()->json(array("result" => "success","status_code" => "1006", "bill_ref"=>$bill_ref, 'data'=>$rspData, 'invoice'=>$invoice));
 
 							} catch (\Exception $e) {
-								return response()->json(array("result"=>"failed", "message"=>$e->getMessage()));
+								return response()->json(array("result"=>"failed","status_code" => "1005", "message"=>$e->getMessage()));
 							}
 						}
 						else
 						{
-							return response()->json(array("result" => "failed", 'message'=>'Bill not found'));
+							return response()->json(array("result" => "failed", "status_code" => "1005", 'message'=>'Bill not found'));
 						}
 					}
 					else if(isset($resArray->resp_status->rsp_msg) && $resArray->resp_status->rsp_cd != "0000")
 					{
-						return response()->json(array("result" => "failed", 'message'=>$resArray->resp_status->rsp_msg));
+						return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>$resArray->resp_status->rsp_msg));
 					}
 					else
 					{
-						return response()->json(array("result" => "failed", 'message'=>'Bill not found'));
+						return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>'Bill not found'));
 					}
 				}
 				else
 				{
-					return response()->json(array("result" => "failed", 'message'=>'Bill payment process failed'));
+					return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>'Bill payment process failed'));
 				}
 			}
 			else
 			{
-				return response()->json(array("result" => "failed", 'message'=>'Enter valid bill number.'));
+				return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>'Enter valid bill number.'));
 			}
 		}
 		else
 		{
-			return response()->json(array("result" => "failed", 'message'=>'Invalid token'));
+			return response()->json(array("result" => "failed","status_code" => "1001", 'message'=>'Invalid token'));
 		}
 	}
 
-	public function fetchRajshahiWasa(Request $req)
-	{
-		$token = $req->header('token');
-		$bill_no=$req->bill_no;
-		$bill_type="NM";
+public function fetchRajshahiWasa(Request $req)
+{
+	
+    $token = $req->header('token');
+    $bill_no = $req->bill_no;
+    $bill_type = "NM";
 
-		if (str_starts_with($token, 'pathaoExpiry')) {
-                
-			$checkResult= $this->checkExpiryToken($token);
-			
-			if($checkResult->original['status']== 'failed') {
-				return response()->json(array("result" => "failed", 'message'=>$checkResult->original['message']));
-			} else {
-				$token = 'QkDVzVbfoQYh40QdqcpeElEmiZJk1hf9iAMbW6nq';
-			}
+    // Handle expired token
+    if (str_starts_with($token, 'pathaoExpiry')) {
+        $checkResult = $this->checkExpiryToken($token);
+        if ($checkResult->original['status'] == 'failed') {
+            return response()->json([
+                "result"      => "failed",
+                "status_code" => "1001",
+                "message"     => $checkResult->original['message']
+            ]);
+        } else {
+            $token = 'QkDVzVbfoQYh40QdqcpeElEmiZJk1hf9iAMbW6nq';
+        }
+    }
+
+    $mobNo = $req->biller_mobile_no ?? "";
+
+    // Validate mobile
+    if ($this->checkBIllerMobile($req) == "failed") {
+        return response()->json([
+            "result"      => "failed",
+            "status_code" => "1005",
+            "message"     => "Please enter valid mobile no."
+        ]);
+    }
+
+    $ccObj = new CommonController();
+    $cData = $ccObj->getCustomerInfoFromToken($token);
+    if (!$cData) {
+        return response()->json([
+            "result"      => "failed",
+            "status_code" => "1005",
+            "message"     => "Invalid token"
+        ]);
+    }
+
+    // Save bill as favorite if requested
+    if (isset($req->is_bill_save) && $req->is_bill_save == "true") {
+        $nickName = $req->bill_save_nick_name ?? "";
+        $this->saveBillAsFavorite($cData->acc_no, 17, $bill_no, $nickName);
+    }
+
+    if (empty($bill_no) || empty($bill_type)) {
+        return response()->json([
+            "result"      => "failed",
+            "status_code" => "1005",
+            "message"     => "Enter valid bill number."
+        ]);
+    }
+
+    try {
+        // Get ekpay token
+        $ekObj = new Ekpay();
+        $tokenData = $ekObj->getToken();
+        if ($tokenData["status"] != "success") {
+            return response()->json([
+                "result"      => "failed",
+                "status_code" => "1005",
+                "message"     => "Bill payment process failed"
+            ]);
         }
 
-		$mobNo="";
-		if(isset($req->biller_mobile_no)){
-			$mobNo=$req->biller_mobile_no;
-		}
+        $token = $tokenData["token"];
+        $trxId = $this->randString(32);
+        $rsdata = $ekObj->fetchRajshahiWasaBill($token, $bill_no, $bill_type, $trxId);
+        $resArray = json_decode($rsdata);
 
-		if($this->checkBIllerMobile($req)=="failed"){
-			return response()->json(array("result" => "failed", 'message'=>'Please enter valid mobile no.'));
-		}
-
-		$ccObj = new CommonController();
-		$cData = $ccObj->getCustomerInfoFromToken($token);
-		if($cData)
-		{
-			if(isset($req->is_bill_save) && $req->is_bill_save=="true"){
-				$nickName="";
-				if(isset($req->bill_save_nick_name)){
-					$nickName=$req->bill_save_nick_name;
-				}
-				$this->saveBillAsFavorite($cData->acc_no, 17, $bill_no, $nickName);
-			}
-
-			if(!empty($bill_no) && !empty($bill_type))
-			{
-				$ekObj = new Ekpay();
-				$tokenData=$ekObj->getToken();
-				if($tokenData["status"]=="success")
-				{
-					$token=$tokenData["token"];
-					$trxId=$this->randString(32);
-					$rsdata=$ekObj->fetchRajshahiWasaBill($token, $bill_no, $bill_type, $trxId);
-					$resArray=json_decode($rsdata);
-					//return response()->json(array("result" => "success", 'data'=>$resArray));
-					if(isset($resArray->resp_status->rsp_cd) && $resArray->resp_status->rsp_cd == "0000")
-					{
-						if(isset($resArray->bllr_inf))
-						{
-							try
-							{
-								$insData["bill_name"]="Rajshahi Wasa";
-								$insData["bill_no"]=$resArray->bllr_inf->bll_no;
-								$insData["bill_amount"]=$resArray->bllr_inf->bll_amnt;
-								$insData["bill_vat"]=$resArray->bllr_inf->bll_vat;
-								$insData["charge"]=$resArray->bllr_inf->ekpay_fee+$this->billChargeTest($cData->acc_no, $resArray->bllr_inf->bll_amnt_ttl, $mobNo);
-								$insData["bill_total_amount"]=$resArray->bllr_inf->bll_amnt_ttl+$this->billChargeTest($cData->acc_no, $resArray->bllr_inf->bll_amnt_ttl, $mobNo);
-								$insData["is_bill_paid"]=$resArray->bllr_inf->is_bll_pd;
-								$insData["bllr_id"]=$resArray->bllr_inf->bllr_id;
+        if (!isset($resArray->resp_status->rsp_cd) || $resArray->resp_status->rsp_cd != "0000") {
+            $msg = $resArray->resp_status->rsp_msg ?? "Bill not found";
 
 
-								$amount = $resArray->bllr_inf->bll_amnt;
-								if ($cData && ($cData->remark == 'Corporate' || $cData->remark == 'Agent')) {
-									if ($amount > 5000) {
-										return response()->json([
-											"result" => "failed",
-											"message" => "Bill amount more than 5000 is not accepted."
-										]);
-										exit();
-									}
-								}
+
+			        $bill_ref = null;
+        $invoice  = null;
+
+		      $rspData = [
+            "bill_name"         => "Rajshahi Wasa",
+            "bill_no"           => $bill_no,
+            "biller_acc_no"     => "",
+            "biller_mobile"     => "",
+            "bill_address"      => "",
+            "bill_from"         => "",
+            "bill_to"           => "",
+            "bill_gen_date"     => "",
+            "bill_due_date"     => "",
+            "bill_amount"       => "0",
+            "bill_vat"          => "0",
+            "bill_late_fee"     => "0",
+            "charge"            => "0",
+            "bill_total_amount" => "0",
+            "is_bill_paid"      => "Y",
+            "bllr_id"           => ""
+        ];
+
+            $insData = array_merge($rspData, [
+                "ekpay_fee"     => "0",
+                "biller_id"     => 17,
+                "biller_cat_id" => 3,
+                "acc_no"        => $cData->acc_no,
+                "trx_id"        => "",
+                "trx_tms"       => "",
+                "ref_id"        => "",
+                "ref_no_ack"    => "",
+                "bill_type"     => "",
+                "message"       => "",
+                "bllr_inf"      => "",
+            ]);
+
+            $id = DB::table('bill_payment')->insertGetId($insData);
+            $bill_ref = [
+                "bill_payment_id" => $id,
+                "bill_refer_id"   => $trxId
+            ];
+            $invoice = $this->billInvoiceDisplay($id);
+
+        return response()->json([
+            "result"      => "success",
+            "status_code" => "1006",
+            "bill_ref"    => $bill_ref,
+            "data"        => $rspData,
+            "invoice"     => $invoice
+        ]);
+
+        }
+
+        if (!isset($resArray->bllr_inf)) {
+            return response()->json([
+                "result"      => "failed",
+                "status_code" => "1005",
+                "message"     => "Bill not found"
+            ]);
+        }
+
+        // Normalize values
+        $amount   = floatval($resArray->bllr_inf->bll_amnt ?? 0);
+        $billVat  = floatval($resArray->bllr_inf->bll_vat ?? 0);
+        $billLate = floatval($resArray->bllr_inf->bll_late_fee ?? 0);
+        $ekpayFee = floatval($resArray->bllr_inf->ekpay_fee ?? 0);
+        $totalAmt = floatval($resArray->bllr_inf->bll_amnt_ttl ?? 0);
+        $isPaid   = ($resArray->bllr_inf->is_bll_pd ?? "N") === 'Y' ? 'Y' : 'N';
+
+        // Business rules
+        if (($cData->remark ?? '') === 'Corporate' || ($cData->remark ?? '') === 'Agent') {
+            if ($amount > 5000) {
+                return response()->json([
+                    "result"      => "failed",
+                    "status_code" => "1005",
+                    "message"     => "Bill amount more than 5000 is not accepted."
+                ]);
+            }
+        }
+
+        if ($cData->acc_no === "22294" && $amount > 3000) {
+            return response()->json([
+                "result"      => "failed",
+                "status_code" => "1005",
+                "message"     => "Amount cannot be greater than 3000 taka"
+            ]);
+        }
+
+        $charge = $isPaid === 'N' ? $ekpayFee + $this->billChargeTest($cData->acc_no, $totalAmt, $mobNo) : 0;
+        $billTotalAmount = $isPaid === 'N' ? $totalAmt + $charge : $totalAmt;
+
+        // Prepare response data
+        $rspData = [
+            "bill_name"         => "Rajshahi Wasa",
+            "bill_no"           => $resArray->bllr_inf->bll_no,
+            "biller_acc_no"     => $resArray->bllr_inf->bllr_accno ?? "",
+            "biller_mobile"     => $resArray->bllr_inf->bll_mobno ?? "",
+            "bill_address"      => $resArray->bllr_inf->bll_addr ?? "",
+            "bill_from"         => $resArray->bllr_inf->bll_dt_frm ?? "",
+            "bill_to"           => $resArray->bllr_inf->bll_dt_to ?? "",
+            "bill_gen_date"     => $resArray->bllr_inf->bill_gen_date ?? "",
+            "bill_due_date"     => $resArray->bllr_inf->bill_due_date ?? "",
+            "bill_amount"       => strval($amount),
+            "bill_vat"          => strval($billVat),
+            "bill_late_fee"     => strval($billLate),
+            "charge"            => strval($charge),
+            "bill_total_amount" => strval($billTotalAmount),
+            "is_bill_paid"      => $isPaid,
+            "bllr_id"           => $resArray->bllr_inf->bllr_id ?? ""
+        ];
+
+        // Insert payment record if unpaid
+        $bill_ref = null;
+        $invoice  = null;
+        if ($isPaid === 'N') {
+            $insData = array_merge($rspData, [
+                "ekpay_fee"     => $ekpayFee,
+                "biller_id"     => 17,
+                "biller_cat_id" => 3,
+                "acc_no"        => $cData->acc_no,
+                "trx_id"        => $resArray->trx->trx_id,
+                "trx_tms"       => $resArray->trx->trx_tms,
+                "ref_id"        => $resArray->hdrs->ref_id,
+                "ref_no_ack"    => $resArray->resp_status->refno_ack,
+                "bill_type"     => $resArray->bllr_inf->bll_typ,
+                "message"       => $resArray->resp_status->rsp_msg,
+                "bllr_inf"      => json_encode($resArray->bllr_inf),
+            ]);
+
+            $id = DB::table('bill_payment')->insertGetId($insData);
+            $bill_ref = [
+                "bill_payment_id" => $id,
+                "bill_refer_id"   => $trxId
+            ];
+            $invoice = $this->billInvoiceDisplay($id);
+        }
+
+        return response()->json([
+            "result"      => "success",
+            "status_code" => "1006",
+            "bill_ref"    => $bill_ref,
+            "data"        => $rspData,
+            "invoice"     => $invoice
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            "result"      => "failed",
+            "status_code" => "1005",
+            "message"     => $e->getMessage() . ' at line ' . $e->getLine()
+        ]);
+    }
+}
 
 
-								if (($cData->acc_no == "22294")) {
 
-									if ($amount > 3000) {
-										return response()->json(array("result" => "failed", 'message'=>'Amount cannot be greater than 3000 taka'));
-									}
 
-								}
 
-								$rspData=$insData;
-								$insData["ekpay_fee"]=$resArray->bllr_inf->ekpay_fee;
-								$insData["biller_id"]=17;
-								$insData["biller_cat_id"]=3;
-								$insData["acc_no"]=$cData->acc_no;
-								$insData["trx_id"]=$resArray->trx->trx_id;
-								$insData["trx_tms"]=$resArray->trx->trx_tms;
-								$insData["ref_id"]=$resArray->hdrs->ref_id;
-								$insData["ref_no_ack"]=$resArray->resp_status->refno_ack;
-								$insData["bill_type"]=$resArray->bllr_inf->bll_typ;
-								$insData["message"]=$resArray->resp_status->rsp_msg;
-								$insData["bllr_inf"]=json_encode($resArray->bllr_inf);
-
-								$id = DB::table('bill_payment')->insertGetId($insData);
-
-								$bill_ref["bill_payment_id"]=$id;
-								$bill_ref["bill_refer_id"]=$trxId;
-
-								$rspData = array_map('strval', $rspData);
-
-								$invoice=$this->billInvoiceDisplay($id);
-								return response()->json(array("result" => "success", "bill_ref"=>$bill_ref, 'data'=>$rspData, 'invoice'=>$invoice));
-
-							} catch (\Exception $e) {
-								return response()->json(array("result"=>"failed", "message"=>$e->getMessage()));
-							}
-						}
-						else
-						{
-							return response()->json(array("result" => "failed", 'message'=>'Bill not found'));
-						}
-					}
-					else if(isset($resArray->resp_status->rsp_msg) && $resArray->resp_status->rsp_cd != "0000")
-					{
-						return response()->json(array("result" => "failed", 'message'=>$resArray->resp_status->rsp_msg));
-					}
-					else
-					{
-						return response()->json(array("result" => "failed", 'message'=>'Bill not found'));
-					}
-				}
-				else
-				{
-					return response()->json(array("result" => "failed", 'message'=>'Bill payment process failed'));
-				}
-			}
-			else
-			{
-				return response()->json(array("result" => "failed", 'message'=>'Enter valid bill number.'));
-			}
-		}
-		else
-		{
-			return response()->json(array("result" => "failed", 'message'=>'Invalid token'));
-		}
-	}
 
 	public function fetchbakhrabadGas(Request $req)
 	{
 		$token = $req->header('token');
-		$biller_acc_no=$req->biller_acc_no;
-		$biller_mobile_no=$req->biller_mobile_no;
-		$bill_type="NM";
+		$biller_acc_no = $req->biller_acc_no;
+		$biller_mobile_no = $req->biller_mobile_no;
+		$bill_type = "NM";
 
 		if (str_starts_with($token, 'pathaoExpiry')) {
-                
-			$checkResult= $this->checkExpiryToken($token);
-			
-			if($checkResult->original['status']== 'failed') {
-				return response()->json(array("result" => "failed", 'message'=>$checkResult->original['message']));
+			$checkResult = $this->checkExpiryToken($token);
+
+			if ($checkResult->original['status'] == 'failed') {
+				return response()->json([
+					"result" => "failed",
+					"status_code" => "1001",
+					"message" => $checkResult->original['message']
+				]);
 			} else {
 				$token = 'QkDVzVbfoQYh40QdqcpeElEmiZJk1hf9iAMbW6nq';
 			}
-        }
-
-		$mobNo="";
-		if(isset($req->biller_mobile_no)){
-			$mobNo=$req->biller_mobile_no;
 		}
 
-		if($this->checkBIllerMobile($req)=="failed"){
-			return response()->json(array("result" => "failed", 'message'=>'Please enter valid mobile no.'));
+		$mobNo = $req->biller_mobile_no ?? "";
+
+		if ($this->checkBIllerMobile($req) == "failed") {
+			return response()->json([
+				"result" => "failed",
+				"status_code" => "1005",
+				"message" => "Please enter valid mobile no."
+			]);
 		}
 
 		$ccObj = new CommonController();
 		$cData = $ccObj->getCustomerInfoFromToken($token);
-		if($cData)
-		{
-			if(isset($req->is_bill_save) && $req->is_bill_save=="true"){
-				$nickName="";
-				if(isset($req->bill_save_nick_name)){
-					$nickName=$req->bill_save_nick_name;
-				}
-				$this->saveBillAsFavorite($cData->acc_no, 11, $biller_acc_no, $nickName);
-			}
-
-			if(!empty($biller_acc_no) && !empty($biller_mobile_no) && !empty($bill_type))
-			{
-				$ekObj = new Ekpay();
-				$tokenData=$ekObj->getToken();
-				if($tokenData["status"]=="success")
-				{
-					$token=$tokenData["token"];
-					$trxId=$this->randString(32);
-					$rsdata=$ekObj->fetchbakhrabadGasBill($token, $biller_acc_no, $biller_mobile_no, $bill_type, $trxId);
-					$resArray=json_decode($rsdata);
-					//return response()->json(array("result" => "success", 'data'=>$resArray));
-					if(isset($resArray->resp_status->rsp_cd) && $resArray->resp_status->rsp_cd == "0000")
-					{
-						if(isset($resArray->bllr_inf))
-						{
-							if($resArray->bllr_inf->is_bll_pd=="N")
-							{
-								try
-								{
-									$insData["bill_name"]="Bakhrabad Gas";
-									$insData["biller_acc_no"]=$resArray->bllr_inf->bllr_accno;
-									$insData["biller_mobile"]=$resArray->bllr_inf->bll_mobno;
-									$insData["bill_from"]=$resArray->bllr_inf->bll_dt_frm;
-									$insData["bill_to"]=$resArray->bllr_inf->bll_dt_to;
-									$insData["bill_amount"]=$resArray->bllr_inf->bll_amnt;
-									$insData["charge"]=$resArray->bllr_inf->ekpay_fee+$this->billChargeTest($cData->acc_no, $resArray->bllr_inf->bll_amnt_ttl, $mobNo);
-									$insData["bill_total_amount"]=$resArray->bllr_inf->bll_amnt_ttl+$this->billChargeTest($cData->acc_no, $resArray->bllr_inf->bll_amnt_ttl, $mobNo);
-									$insData["is_bill_paid"]=$resArray->bllr_inf->is_bll_pd;
-									$insData["bllr_id"]=$resArray->bllr_inf->bllr_id;
-
-
-									$amount = $resArray->bllr_inf->bll_amnt;
-									if ($cData && ($cData->remark == 'Corporate' || $cData->remark == 'Agent')) {
-										if ($amount > 5000) {
-											return response()->json([
-												"result" => "failed",
-												"message" => "Bill amount more than 5000 is not accepted."
-											]);
-											exit();
-										}
-									}
-
-									if (($cData->acc_no == "22294")) {
-
-										if ($amount > 3000) {
-											return response()->json(array("result" => "failed", 'message'=>'Amount cannot be greater than 3000 taka'));
-										}
-
-									}
-
-									$rspData=$insData;
-									$insData["ekpay_fee"]=$resArray->bllr_inf->ekpay_fee;
-									$insData["biller_id"]=11;
-									$insData["biller_cat_id"]=2;
-									$insData["acc_no"]=$cData->acc_no;
-									$insData["trx_id"]=$resArray->trx->trx_id;
-									$insData["trx_tms"]=$resArray->trx->trx_tms;
-									$insData["ref_id"]=$resArray->hdrs->ref_id;
-									$insData["ref_no_ack"]=$resArray->resp_status->refno_ack;
-									$insData["bill_type"]=$resArray->bllr_inf->bll_typ;
-									$insData["message"]=$resArray->resp_status->rsp_msg;
-									$insData["bllr_inf"]=json_encode($resArray->bllr_inf);
-
-									$id = DB::table('bill_payment')->insertGetId($insData);
-
-									$bill_ref["bill_payment_id"]=$id;
-									$bill_ref["bill_refer_id"]=$trxId;
-
-									$rspData = array_map('strval', $rspData);
-
-									$invoice=$this->billInvoiceDisplay($id);
-									return response()->json(array("result" => "success", "bill_ref"=>$bill_ref, 'data'=>$rspData, 'invoice'=>$invoice));
-
-								} catch (\Exception $e) {
-									return response()->json(array("result"=>"failed", "message"=>$e->getMessage()));
-								}
-							}
-							else
-							{
-								return response()->json(array("result" => "failed", 'message'=>'Bill already paid'));
-							}
-						}
-						else
-						{
-							return response()->json(array("result" => "failed", 'message'=>'Bill not found'));
-						}
-					}
-					else if(isset($resArray->resp_status->rsp_msg) && $resArray->resp_status->rsp_cd != "0000")
-					{
-						return response()->json(array("result" => "failed", 'message'=>$resArray->resp_status->rsp_msg));
-					}
-					else
-					{
-						return response()->json(array("result" => "failed", 'message'=>'Bill not found'));
-					}
-				}
-				else
-				{
-					return response()->json(array("result" => "failed", 'message'=>'Bill payment process failed'));
-				}
-			}
-			else
-			{
-				return response()->json(array("result" => "failed", 'message'=>'Enter valid bill number.'));
-			}
+		if (!$cData) {
+			return response()->json([
+				"result" => "failed",
+				"status_code" => "1005",
+				"message" => "Invalid token"
+			]);
 		}
-		else
-		{
-			return response()->json(array("result" => "failed", 'message'=>'Invalid token'));
+
+		if (isset($req->is_bill_save) && $req->is_bill_save == "true") {
+			$nickName = $req->bill_save_nick_name ?? "";
+			$this->saveBillAsFavorite($cData->acc_no, 11, $biller_acc_no, $nickName);
+		}
+
+		if (empty($biller_acc_no) || empty($biller_mobile_no) || empty($bill_type)) {
+			return response()->json([
+				"result" => "failed",
+				"status_code" => "1005",
+				"message" => "Enter valid bill number."
+			]);
+		}
+
+		$ekObj = new Ekpay();
+		$tokenData = $ekObj->getToken();
+		if ($tokenData["status"] != "success") {
+			return response()->json([
+				"result" => "failed",
+				"status_code" => "1005",
+				"message" => "Bill payment process failed"
+			]);
+		}
+
+		$token = $tokenData["token"];
+		$trxId = $this->randString(32);
+		$rsdata = $ekObj->fetchbakhrabadGasBill($token, $biller_acc_no, $biller_mobile_no, $bill_type, $trxId);
+		$resArray = json_decode($rsdata);
+
+		if (isset($resArray->resp_status->rsp_cd) && $resArray->resp_status->rsp_cd == "0000") {
+			if (!isset($resArray->bllr_inf)) {
+				return response()->json([
+					"result" => "failed",
+					"status_code" => "1005",
+					"message" => "Bill not found"
+				]);
+			}
+
+			try {
+				// Normalize values
+				$amount = (isset($resArray->bllr_inf->bll_amnt) && is_numeric($resArray->bllr_inf->bll_amnt))
+					? (float) $resArray->bllr_inf->bll_amnt
+					: 0;
+
+				$totalAmount = (isset($resArray->bllr_inf->bll_amnt_ttl) && is_numeric($resArray->bllr_inf->bll_amnt_ttl))
+					? (float) $resArray->bllr_inf->bll_amnt_ttl
+					: 0;
+
+				$ekpayFee = (isset($resArray->bllr_inf->ekpay_fee) && is_numeric($resArray->bllr_inf->ekpay_fee))
+					? (float) $resArray->bllr_inf->ekpay_fee
+					: 0;
+
+				$isPaid = (isset($resArray->bllr_inf->is_bll_pd) && $resArray->bllr_inf->is_bll_pd == 'Y') ? 'Y' : 'N';
+
+				$charge = $totalAmount > 0
+					? $ekpayFee + $this->billChargeTest($cData->acc_no, $totalAmount, $mobNo)
+					: 0;
+
+				// Business rules
+				if ($cData && ($cData->remark == 'Corporate' || $cData->remark == 'Agent')) {
+					if ($amount > 5000) {
+						return response()->json([
+							"result" => "failed",
+							"status_code" => "1005",
+							"message" => "Bill amount more than 5000 is not accepted."
+						]);
+					}
+				}
+
+				if ($cData->acc_no == "22294" && $amount > 3000) {
+					return response()->json([
+						"result" => "failed",
+						"status_code" => "1005",
+						"message" => "Amount cannot be greater than 3000 taka"
+					]);
+				}
+
+				// Build insert data
+				$insData = [
+					"bill_name"         => "Bakhrabad Gas",
+					"biller_acc_no"     => $resArray->bllr_inf->bllr_accno ?? "",
+					"biller_mobile"     => $resArray->bllr_inf->bll_mobno ?? "",
+					"bill_from"         => $resArray->bllr_inf->bll_dt_frm ?? "",
+					"bill_to"           => $resArray->bllr_inf->bll_dt_to ?? "",
+					"bill_amount"       => $amount,
+					"charge"            => $charge,
+					"bill_total_amount" => $totalAmount + $charge,
+					"is_bill_paid"      => $isPaid,
+					"bllr_id"           => $resArray->bllr_inf->bllr_id ?? "",
+					"ekpay_fee"         => $ekpayFee,
+					"biller_id"         => 11,
+					"biller_cat_id"     => 2,
+					"acc_no"            => $cData->acc_no,
+					"trx_id"            => $resArray->trx->trx_id ?? "",
+					"trx_tms"           => $resArray->trx->trx_tms ?? "",
+					"ref_id"            => $resArray->hdrs->ref_id ?? "",
+					"ref_no_ack"        => $resArray->resp_status->refno_ack ?? "",
+					"bill_type"         => $resArray->bllr_inf->bll_typ ?? "",
+					"message"           => $resArray->resp_status->rsp_msg ?? "",
+					"bllr_inf"          => json_encode($resArray->bllr_inf)
+				];
+
+				$id = DB::table('bill_payment')->insertGetId($insData);
+
+				$bill_ref = [
+					"bill_payment_id" => $id,
+					"bill_refer_id"   => $trxId
+				];
+
+				$rspData = [
+					"bill_name"         => "Bakhrabad gas",
+					"bill_no"           => $resArray->bllr_inf->bill_no ?? "",   // 🔹 if bill_no exists in API
+					"biller_acc_no"     => $resArray->bllr_inf->bllr_accno ?? "",
+					"biller_mobile"     => $resArray->bllr_inf->bll_mobno ?? "",
+					"bill_address"      => $resArray->bllr_inf->bll_addr ?? "",
+					"bill_from"         => $resArray->bllr_inf->bll_dt_frm ?? "",
+					"bill_to"           => $resArray->bllr_inf->bll_dt_to ?? "",
+					"bill_gen_date"     => $resArray->bllr_inf->bill_gen_date ?? "",
+					"bill_due_date"     => $resArray->bllr_inf->bill_due_date ?? "",
+					"bill_amount"       => strval($resArray->bllr_inf->bll_amnt ?? 0),
+					"bill_vat"          => strval($resArray->bllr_inf->bill_vat ?? 0),
+					"bill_late_fee"     => strval($resArray->bllr_inf->bill_late_fee ?? 0),
+					"charge"            => strval(($resArray->bllr_inf->ekpay_fee ?? 0) 
+												+ $this->billChargeTest($cData->acc_no, $resArray->bllr_inf->bll_amnt_ttl ?? 0, $mobNo)),
+					"bill_total_amount" => strval(($resArray->bllr_inf->bll_amnt_ttl ?? 0) 
+												+ $this->billChargeTest($cData->acc_no, $resArray->bllr_inf->bll_amnt_ttl ?? 0, $mobNo)),
+					"is_bill_paid"      => $resArray->bllr_inf->is_bll_pd ?? "N",
+					"bllr_id"           => $resArray->bllr_inf->bllr_id ?? "",
+				];
+
+				$invoice = $this->billInvoiceDisplay($id);
+
+				return response()->json([
+					"result"   => "success",
+					"status_code" => "1006",
+					"bill_ref" => $bill_ref,
+					"data"     => $rspData,
+					"invoice"  => $invoice
+				]);
+			} catch (\Exception $e) {
+				return response()->json([
+					"result"  => "failed",
+					"status_code" => "1005",
+					"message" => $e->getMessage()
+				]);
+			}
+		} elseif (isset($resArray->resp_status->rsp_msg)) {
+			return response()->json([
+				"result"  => "failed",
+				"status_code" => "1005",
+				"message" => $resArray->resp_status->rsp_msg
+			]);
+		} else {
+			return response()->json([
+				"result"  => "failed",
+				"status_code" => "1005",
+				"message" => "Bill not found"
+			]);
 		}
 	}
+
 
 	public function fetchjalalabadGas(Request $req)
 	{
@@ -3247,7 +3573,7 @@ public function billPaymentChargePreview(Request $req)
 			$checkResult= $this->checkExpiryToken($token);
 			
 			if($checkResult->original['status']== 'failed') {
-				return response()->json(array("result" => "failed", 'message'=>$checkResult->original['message']));
+				return response()->json(array("result" => "failed","status_code" => "1001", 'message'=>$checkResult->original['message']));
 			} else {
 				$token = 'QkDVzVbfoQYh40QdqcpeElEmiZJk1hf9iAMbW6nq';
 			}
@@ -3265,7 +3591,7 @@ public function billPaymentChargePreview(Request $req)
 		DB::table('test2')->insert($tdata);
 
 		if($this->checkBIllerMobile($req)=="failed"){
-			return response()->json(array("result" => "failed", 'message'=>'Please enter valid mobile no.'));
+			return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>'Please enter valid mobile no.'));
 		}
 
 		$ccObj = new CommonController();
@@ -3313,6 +3639,7 @@ public function billPaymentChargePreview(Request $req)
 									if ($amount > 5000) {
 										return response()->json([
 											"result" => "failed",
+											"status_code" => "1005",
 											"message" => "Bill amount more than 5000 is not accepted."
 										]);
 										exit();
@@ -3323,24 +3650,36 @@ public function billPaymentChargePreview(Request $req)
 								if (($cData->acc_no == "22294")) {
 
 									if ($amount > 3000) {
-										return response()->json(array("result" => "failed", 'message'=>'Amount cannot be greater than 3000 taka'));
+										return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>'Amount cannot be greater than 3000 taka'));
 									}
 
 								}
 
 
 								$rspData=$insData;
-								$insData["ekpay_fee"]=$resArray->bllr_inf->ekpay_fee;
-								$insData["biller_id"]=10;
-								$insData["biller_cat_id"]=2;
-								$insData["acc_no"]=$cData->acc_no;
-								$insData["trx_id"]=$resArray->trx->trx_id;
-								$insData["trx_tms"]=$resArray->trx->trx_tms;
-								$insData["ref_id"]=$resArray->hdrs->ref_id;
-								$insData["ref_no_ack"]=$resArray->resp_status->refno_ack;
-								$insData["bill_type"]=$resArray->bllr_inf->bll_typ;
-								$insData["message"]=$resArray->resp_status->rsp_msg;
-								$insData["bllr_inf"]=json_encode($resArray->bllr_inf);
+								$insData = [
+									"bill_name"         => "Jalalabad Gas",
+									"biller_acc_no"     => $resArray->bllr_inf->bllr_accno ?? "",
+									"biller_mobile"     => $resArray->bllr_inf->bll_mobno ?? "",
+									"bill_from"         => $resArray->bllr_inf->bll_dt_frm ?? "",
+									"bill_to"           => $resArray->bllr_inf->bll_dt_to ?? "",
+									"bill_amount"       => $resArray->bllr_inf->bll_amnt ?? 0,
+									"bill_late_fee"     => $resArray->bllr_inf->bll_late_fee ?? 0,
+									"charge"            => ($resArray->bllr_inf->ekpay_fee ?? 0) + $this->billChargeTest($cData->acc_no, $resArray->bllr_inf->bll_amnt_ttl ?? 0, $mobNo),
+									"bill_total_amount" => ($resArray->bllr_inf->bll_amnt_ttl ?? 0) + $this->billChargeTest($cData->acc_no, $resArray->bllr_inf->bll_amnt_ttl ?? 0, $mobNo),
+									"is_bill_paid"      => $resArray->bllr_inf->is_bll_pd ?? 0,
+									"bllr_id"           => $resArray->bllr_inf->bllr_id ?? "",
+									"biller_id"         => 11,
+									"biller_cat_id"     => 2,
+									"acc_no"            => $cData->acc_no,
+									"trx_id"            => $resArray->trx->trx_id ?? "",
+									"trx_tms"           => $resArray->trx->trx_tms ?? "",
+									"ref_id"            => $resArray->hdrs->ref_id ?? "",
+									"ref_no_ack"        => $resArray->resp_status->refno_ack ?? "",
+									"bill_type"         => $resArray->bllr_inf->bll_typ ?? "",
+									"message"           => $resArray->resp_status->rsp_msg ?? "",
+									"bllr_inf"          => json_encode($resArray->bllr_inf)
+								];
 
 								$id = DB::table('bill_payment')->insertGetId($insData);
 
@@ -3350,195 +3689,274 @@ public function billPaymentChargePreview(Request $req)
 								$rspData = array_map('strval', $rspData);
 
 								$invoice=$this->billInvoiceDisplay($id);
-								return response()->json(array("result" => "success", "bill_ref"=>$bill_ref, 'data'=>$rspData, 'invoice'=>$invoice));
+
+
+								$rspData = [
+									"bill_name"         => "jalalabad Gas",
+									"bill_no"           => "",   // 🔹 if bill_no exists in API
+									"biller_acc_no"     => $resArray->bllr_inf->bllr_accno ?? "",
+									"biller_mobile"     => $resArray->bllr_inf->bll_mobno ?? "",
+									"bill_address"      => $resArray->bllr_inf->bll_addr ?? "",
+									"bill_from"         => $resArray->bllr_inf->bll_dt_frm ?? "",
+									"bill_to"           => $resArray->bllr_inf->bll_dt_to ?? "",
+									"bill_gen_date"     => $resArray->bllr_inf->bill_gen_date ?? "",
+									"bill_due_date"     => $resArray->bllr_inf->bill_due_date ?? "",
+									"bill_amount"       => strval($resArray->bllr_inf->bll_amnt ?? 0),
+									"bill_vat"          => strval($resArray->bllr_inf->bill_vat ?? 0),
+									"bill_late_fee"     => strval($resArray->bllr_inf->bill_late_fee ?? 0),
+									"charge"            => strval(($resArray->bllr_inf->ekpay_fee ?? 0) 
+																+ $this->billChargeTest($cData->acc_no, $resArray->bllr_inf->bll_amnt_ttl ?? 0, $mobNo)),
+									"bill_total_amount" => strval(($resArray->bllr_inf->bll_amnt_ttl ?? 0) 
+																+ $this->billChargeTest($cData->acc_no, $resArray->bllr_inf->bll_amnt_ttl ?? 0, $mobNo)),
+									"is_bill_paid"      => $resArray->bllr_inf->is_bll_pd ?? "N",
+									"bllr_id"           => $resArray->bllr_inf->bllr_id ?? "",
+								];
+
+
+								return response()->json(array("result" => "success","status_code" => "1006", "bill_ref"=>$bill_ref, 'data'=>$rspData, 'invoice'=>$invoice));
 
 							} catch (\Exception $e) {
-								return response()->json(array("result"=>"failed", "message"=>$e->getMessage()));
+								return response()->json([
+									"result" => "failed",
+									"status_code" => "1005",
+									"message" => $e->getMessage()
+								]);
 							}
 						}
 						else
 						{
-							return response()->json(array("result" => "failed", 'message'=>'Bill not found'));
+							return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>'Bill not found'));
 						}
 					}
 					else if(isset($resArray->resp_status->rsp_cd) && isset($resArray->resp_status->rsp_msg) && $resArray->resp_status->rsp_cd != "0000")
 					{
 						if($resArray->resp_status->rsp_msg=="Paid/not found")
 						{
-							return response()->json(array("result" => "failed", 'message'=>"Bill already paid"));
+							return response()->json(array("result" => "failed", "status_code" => "1005", 'message'=>"Bill already paid"));
 						}
 						else if(strpos($resArray->resp_status->rsp_msg, "Session Lock with") !== false)
 						{
-							return response()->json(array("result" => "failed", 'message'=>"You have tried once, Please try again after 3 minutes."));
+							return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>"You have tried once, Please try again after 3 minutes."));
 						}
 						else
 						{
-							return response()->json(array("result" => "failed", 'message'=>$resArray->resp_status->rsp_msg));
+							return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>$resArray->resp_status->rsp_msg));
 						}
 					}
 					else
 					{
-						return response()->json(array("result" => "failed", 'message'=>'Bill not found'));
+						return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>'Bill not found'));
 					}
 				}
 				else
 				{
-					return response()->json(array("result" => "failed", 'message'=>'Bill payment process failed'));
+					return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>'Bill payment process failed'));
 				}
 			}
 			else
 			{
-				return response()->json(array("result" => "failed", 'message'=>'Enter valid bill number.'));
+				return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>'Enter valid bill number.'));
 			}
 		}
 		else
 		{
-			return response()->json(array("result" => "failed", 'message'=>'Invalid token'));
+			return response()->json(array("result" => "failed","status_code" => "1001", 'message'=>'Invalid token'));
 		}
 	}
 
 	public function fetchpaschimanchalGas(Request $req)
 	{
 		$token = $req->header('token');
-		$biller_acc_no=$req->biller_acc_no;
-		$biller_mobile_no=$req->biller_mobile_no;
-		$bill_type="NM";
+		$biller_acc_no = $req->biller_acc_no;
+		$biller_mobile_no = $req->biller_mobile_no;
+		$bill_type = "NM";
 
 		if (str_starts_with($token, 'pathaoExpiry')) {
-                
-			$checkResult= $this->checkExpiryToken($token);
-			
-			if($checkResult->original['status']== 'failed') {
-				return response()->json(array("result" => "failed", 'message'=>$checkResult->original['message']));
+			$checkResult = $this->checkExpiryToken($token);
+			if ($checkResult->original['status'] == 'failed') {
+				return response()->json([
+					"result"      => "failed",
+					"status_code" => "1001",
+					"message"     => $checkResult->original['message']
+				]);
 			} else {
 				$token = 'QkDVzVbfoQYh40QdqcpeElEmiZJk1hf9iAMbW6nq';
 			}
-        }
-
-		$mobNo="";
-		if(isset($req->biller_mobile_no)){
-			$mobNo=$req->biller_mobile_no;
 		}
 
-		if($this->checkBIllerMobile($req)=="failed"){
-			return response()->json(array("result" => "failed", 'message'=>'Please enter valid mobile no.'));
+		$mobNo = "";
+		if (isset($req->biller_mobile_no)) {
+			$mobNo = $req->biller_mobile_no;
+		}
+
+		if ($this->checkBIllerMobile($req) == "failed") {
+			return response()->json([
+				"result"      => "failed",
+				"status_code" => "1005",
+				"message"     => "Please enter valid mobile no."
+			]);
 		}
 
 		$ccObj = new CommonController();
 		$cData = $ccObj->getCustomerInfoFromToken($token);
-		if($cData)
-		{
-			if(isset($req->is_bill_save) && $req->is_bill_save=="true"){
-				$nickName="";
-				if(isset($req->bill_save_nick_name)){
-					$nickName=$req->bill_save_nick_name;
+
+		if ($cData) {
+			if (isset($req->is_bill_save) && $req->is_bill_save == "true") {
+				$nickName = "";
+				if (isset($req->bill_save_nick_name)) {
+					$nickName = $req->bill_save_nick_name;
 				}
 				$this->saveBillAsFavorite($cData->acc_no, 12, $biller_acc_no, $nickName);
 			}
 
-			if(!empty($biller_acc_no) && !empty($biller_mobile_no) && !empty($bill_type))
-			{
+			if (!empty($biller_acc_no) && !empty($biller_mobile_no) && !empty($bill_type)) {
 				$ekObj = new Ekpay();
-				$tokenData=$ekObj->getToken();
-				if($tokenData["status"]=="success")
-				{
-					$token=$tokenData["token"];
-					$trxId=$this->randString(32);
-					$rsdata=$ekObj->fetchPaschimanchalGasBill($token, $biller_acc_no, $biller_mobile_no, $bill_type, $trxId);
-					$resArray=json_decode($rsdata);
-					//return response()->json(array("result" => "success", 'data'=>$resArray));
-					if(isset($resArray->resp_status->rsp_cd) && $resArray->resp_status->rsp_cd == "0000")
-					{
-						if(isset($resArray->bllr_inf))
-						{
-							try
-							{
-								$insData["bill_name"]="Paschimanchal Gas";
-								$insData["biller_acc_no"]=$resArray->bllr_inf->bllr_accno;
-								$insData["biller_mobile"]=$resArray->bllr_inf->bll_mobno;
-								$insData["bill_amount"]=$resArray->bllr_inf->bll_amnt;
-								$insData["bill_late_fee"]=$resArray->bllr_inf->bll_late_fee;
-								$insData["charge"]=$resArray->bllr_inf->ekpay_fee+$this->billChargeTest($cData->acc_no, $resArray->bllr_inf->bll_amnt_ttl, $mobNo);
-								$insData["bill_total_amount"]=$resArray->bllr_inf->bll_amnt_ttl+$this->billCharge($cData->acc_no, $resArray->bllr_inf->bll_amnt_ttl, $mobNo);
-								$insData["is_bill_paid"]=$resArray->bllr_inf->is_bll_pd;
-								$insData["bllr_id"]=$resArray->bllr_inf->bllr_id;
+				$tokenData = $ekObj->getToken();
 
+				if ($tokenData["status"] == "success") {
+					$token = $tokenData["token"];
+					$trxId = $this->randString(32);
+					$rsdata = $ekObj->fetchPaschimanchalGasBill($token, $biller_acc_no, $biller_mobile_no, $bill_type, $trxId);
+					$resArray = json_decode($rsdata);
 
+					if (isset($resArray->resp_status->rsp_cd) && $resArray->resp_status->rsp_cd == "0000") {
+						if (isset($resArray->bllr_inf)) {
+							try {
 								$amount = $resArray->bllr_inf->bll_amnt;
+
+								// Restrictions for Corporate/Agent
 								if ($cData && ($cData->remark == 'Corporate' || $cData->remark == 'Agent')) {
 									if ($amount > 5000) {
 										return response()->json([
-											"result" => "failed",
-											"message" => "Bill amount more than 5000 is not accepted."
+											"result"      => "failed",
+											"status_code" => "1005",
+											"message"     => "Bill amount more than 5000 is not accepted."
 										]);
-										exit();
 									}
 								}
 
-
+								// Restriction for acc_no 22294
 								if (($cData->acc_no == "22294")) {
-
 									if ($amount > 3000) {
-										return response()->json(array("result" => "failed", 'message'=>'Amount cannot be greater than 3000 taka'));
+										return response()->json([
+											"result"      => "failed",
+											"status_code" => "1005",
+											"message"     => "Amount cannot be greater than 3000 taka"
+										]);
 									}
-
 								}
 
+								// ✅ Prepare rspData with all fields
+								$rspData = [
+									"bill_name"         => "Paschimanchal Gas",
+									"biller_acc_no"     => $resArray->bllr_inf->bllr_accno ?? "",
+									"biller_mobile"     => $resArray->bllr_inf->bll_mobno ?? "",
+									"bill_from"         => $resArray->bllr_inf->bll_dt_frm ?? "",
+									"bill_to"           => $resArray->bllr_inf->bll_dt_to ?? "",
+									"bill_amount"       => strval($resArray->bllr_inf->bll_amnt ?? 0),
+									"charge"            => strval(($resArray->bllr_inf->ekpay_fee ?? 0) + $this->billChargeTest($cData->acc_no, $resArray->bllr_inf->bll_amnt_ttl ?? 0, $mobNo)),
+									"bill_total_amount" => strval(($resArray->bllr_inf->bll_amnt_ttl ?? 0) + $this->billChargeTest($cData->acc_no, $resArray->bllr_inf->bll_amnt_ttl ?? 0, $mobNo)),
+									"is_bill_paid"      => $resArray->bllr_inf->is_bll_pd ?? "N",
+									"bllr_id"           => $resArray->bllr_inf->bllr_id ?? "",
+									"ekpay_fee"         => strval($resArray->bllr_inf->ekpay_fee ?? 0),
+									"biller_id"         => "12",
+									"biller_cat_id"     => "2",
+									"acc_no"            => strval($cData->acc_no),
+									"trx_id"            => $resArray->trx->trx_id ?? "",
+									"trx_tms"           => $resArray->trx->trx_tms ?? "",
+									"ref_id"            => $resArray->hdrs->ref_id ?? "",
+									"ref_no_ack"        => $resArray->resp_status->refno_ack ?? "",
+									"bill_type"         => $resArray->bllr_inf->bll_typ ?? "",
+									"message"           => $resArray->resp_status->rsp_msg ?? "Bill fetch success",
+									"bllr_inf"          => json_encode($resArray->bllr_inf)
+								];
 
-								$rspData=$insData;
-								$insData["ekpay_fee"]=$resArray->bllr_inf->ekpay_fee;
-								$insData["biller_id"]=12;
-								$insData["biller_cat_id"]=2;
-								$insData["acc_no"]=$cData->acc_no;
-								$insData["trx_id"]=$resArray->trx->trx_id;
-								$insData["trx_tms"]=$resArray->trx->trx_tms;
-								$insData["ref_id"]=$resArray->hdrs->ref_id;
-								$insData["ref_no_ack"]=$resArray->resp_status->refno_ack;
-								$insData["bill_type"]=$resArray->bllr_inf->bll_typ;
-								$insData["message"]=$resArray->resp_status->rsp_msg;
-								$insData["bllr_inf"]=json_encode($resArray->bllr_inf);
+								$rspData = [
+									"bill_name"         => "Paschimanchal Gas",
+									"bill_no"           => $resArray->bllr_inf->bill_no ?? "",   // 🔹 if bill_no exists in API
+									"biller_acc_no"     => $resArray->bllr_inf->bllr_accno ?? "",
+									"biller_mobile"     => $resArray->bllr_inf->bll_mobno ?? "",
+									"bill_address"      => $resArray->bllr_inf->bll_addr ?? "",
+									"bill_from"         => $resArray->bllr_inf->bll_dt_frm ?? "",
+									"bill_to"           => $resArray->bllr_inf->bll_dt_to ?? "",
+									"bill_gen_date"     => $resArray->bllr_inf->bill_gen_date ?? "",
+									"bill_due_date"     => $resArray->bllr_inf->bill_due_date ?? "",
+									"bill_amount"       => strval($resArray->bllr_inf->bll_amnt ?? 0),
+									"bill_vat"          => strval($resArray->bllr_inf->bill_vat ?? 0),
+									"bill_late_fee"     => strval($resArray->bllr_inf->bill_late_fee ?? 0),
+									"charge"            => strval(($resArray->bllr_inf->ekpay_fee ?? 0) 
+																+ $this->billChargeTest($cData->acc_no, $resArray->bllr_inf->bll_amnt_ttl ?? 0, $mobNo)),
+									"bill_total_amount" => strval(($resArray->bllr_inf->bll_amnt_ttl ?? 0) 
+																+ $this->billChargeTest($cData->acc_no, $resArray->bllr_inf->bll_amnt_ttl ?? 0, $mobNo)),
+									"is_bill_paid"      => $resArray->bllr_inf->is_bll_pd ?? "N",
+									"bllr_id"           => $resArray->bllr_inf->bllr_id ?? "",
+								];
 
-								$id = DB::table('bill_payment')->insertGetId($insData);
 
-								$rspData = array_map('strval', $rspData);
+								// ✅ Insert into DB
+								$id = DB::table('bill_payment')->insertGetId($rspData);
 
-								$bill_ref["bill_payment_id"]=$id;
-								$bill_ref["bill_refer_id"]=$trxId;
+								$bill_ref = [
+									"bill_payment_id" => $id,
+									"bill_refer_id"   => $trxId
+								];
 
-								$invoice=$this->billInvoiceDisplay($id);
-								return response()->json(array("result" => "success", "bill_ref"=>$bill_ref, 'data'=>$rspData, 'invoice'=>$invoice));
+								$invoice = $this->billInvoiceDisplay($id);
 
+								return response()->json([
+									"result"      => "success",
+									"status_code" => "1006",
+									"bill_ref"    => $bill_ref,
+									"data"        => $rspData,
+									"invoice"     => $invoice
+								]);
 							} catch (\Exception $e) {
-								return response()->json(array("result"=>"failed", "message"=>$e->getMessage()));
+								return response()->json([
+									"result"      => "failed",
+									"status_code" => "1005",
+									"message"     => $e->getMessage()
+								]);
 							}
+						} else {
+							return response()->json([
+								"result"      => "failed",
+								"status_code" => "1005",
+								"message"     => "Bill not found"
+							]);
 						}
-						else
-						{
-							return response()->json(array("result" => "failed", 'message'=>'Bill not found'));
-						}
+					} else if (isset($resArray->resp_status->rsp_msg) && $resArray->resp_status->rsp_cd != "0000") {
+						return response()->json([
+							"result"      => "failed",
+							"status_code" => "1005",
+							"message"     => $resArray->resp_status->rsp_msg
+						]);
+					} else {
+						return response()->json([
+							"result"      => "failed",
+							"status_code" => "1005",
+							"message"     => "Bill not found"
+						]);
 					}
-					else if(isset($resArray->resp_status->rsp_msg) && $resArray->resp_status->rsp_cd != "0000")
-					{
-						return response()->json(array("result" => "failed", 'message'=>$resArray->resp_status->rsp_msg));
-					}
-					else
-					{
-						return response()->json(array("result" => "failed", 'message'=>'Bill not found'));
-					}
+				} else {
+					return response()->json([
+						"result"      => "failed",
+						"status_code" => "1005",
+						"message"     => "Bill payment process failed"
+					]);
 				}
-				else
-				{
-					return response()->json(array("result" => "failed", 'message'=>'Bill payment process failed'));
-				}
+			} else {
+				return response()->json([
+					"result"      => "failed",
+					"status_code" => "1005",
+					"message"     => "Enter valid bill number."
+				]);
 			}
-			else
-			{
-				return response()->json(array("result" => "failed", 'message'=>'Enter valid bill number.'));
-			}
-		}
-		else
-		{
-			return response()->json(array("result" => "failed", 'message'=>'Invalid token'));
+		} else {
+			return response()->json([
+				"result"      => "failed",
+				"status_code" => "1001",
+				"message"     => "Invalid token"
+			]);
 		}
 	}
 
@@ -4221,7 +4639,7 @@ public function billPaymentChargePreview(Request $req)
 			$checkResult= $this->checkExpiryToken($token);
 			
 			if($checkResult->original['status']== 'failed') {
-				return response()->json(array("result" => "failed", 'message'=>$checkResult->original['message']));
+				return response()->json(array("result" => "failed","status_code" => "1001", 'message'=>$checkResult->original['message']));
 			} else {
 				$token = 'QkDVzVbfoQYh40QdqcpeElEmiZJk1hf9iAMbW6nq';
 			}
@@ -4231,14 +4649,14 @@ public function billPaymentChargePreview(Request $req)
 
 		if (!empty($amount)) {
 			if ($amount < 500) {
-				return response()->json(array("result" => "failed", 'message'=>'Amount cannot be less than 500 taka'));
+				return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>'Amount cannot be less than 500 taka'));
 			}
 		}
 		
 
 
 		if($this->checkBIllerMobile($req)=="failed"){
-			return response()->json(array("result" => "failed", 'message'=>'Please enter valid mobile no.'));
+			return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>'Please enter valid mobile no.'));
 		}
 
 		$ccObj = new CommonController();
@@ -4250,6 +4668,7 @@ public function billPaymentChargePreview(Request $req)
 			if ($amount > 5000) {
 				return response()->json([
 					"result" => "failed",
+					"status_code" => "1005",
 					"message" => "Bill amount more than 5000 is not accepted."
 				]);
 				exit();
@@ -4260,7 +4679,7 @@ public function billPaymentChargePreview(Request $req)
 		if (($cData->acc_no == "22294")) {
 
 			if ($amount > 3000) {
-				return response()->json(array("result" => "failed", 'message'=>'Amount cannot be greater than 3000 taka'));
+				return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>'Amount cannot be greater than 3000 taka'));
 			}
 
 		}
@@ -4323,24 +4742,44 @@ public function billPaymentChargePreview(Request $req)
 						$rspData = array_map('strval', $rspData);
 
 						$invoice=$this->billInvoiceDisplay($id);
-						return response()->json(array("result" => "success", "bill_ref"=>$bill_ref, 'data'=>$rspData, 'invoice' => $invoice));
+
+						    $rspData = [
+        "bill_name"         => "BPDB Prepaid",
+        "bill_no"           => $meter_no,
+        "biller_acc_no"     => "bpdb200",
+        "biller_mobile"     => $biller_mobile_no,
+        "bill_address"      => $resArray->data->customerAddress ?? "",
+        "bill_from"         => "", // if available from API
+        "bill_to"           => "", // if available from API
+        "bill_gen_date"     => $resArray->data->transDate ?? "",
+        "bill_due_date"     => "", // if available from API
+        "bill_amount"       => strval($amount),
+        "bill_vat"          => strval($resArray->data->bill_vat ?? 0),
+        "bill_late_fee"     => strval($resArray->data->late_fee ?? 0),
+        "charge"            => strval($this->billCharge($cData->acc_no, $amount)),
+        "bill_total_amount" => strval($amount + $this->billCharge($cData->acc_no, $amount)),
+        "is_bill_paid"      => "N",
+        "bllr_id"           => "bpdb200",
+    ];
+	
+						return response()->json(array("result" => "success","status_code" => "1006", "bill_ref"=>$bill_ref, 'data'=>$rspData, 'invoice' => $invoice));
 					} catch (\Exception $e) {
-						return response()->json(array("result"=>"failed", "message"=>$e->getMessage()));
+						return response()->json(array("result"=>"failed","status_code" => "1005", "message"=>$e->getMessage()));
 					}
 				}
 				else
 				{
-					return response()->json(array("result" => "failed", 'message'=>$resArray->message));
+					return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>$resArray->message));
 				}
 			}
 			else
 			{
-				return response()->json(array("result" => "failed", 'message'=>'Enter valid meter number.'));
+				return response()->json(array("result" => "failed","status_code" => "1005", 'message'=>'Enter valid meter number.'));
 			}
 		}
 		else
 		{
-			return response()->json(array("result" => "failed", 'message'=>'Invalid token'));
+			return response()->json(array("result" => "failed","status_code" => "1001", 'message'=>'Invalid token'));
 		}
 	}
 
@@ -4723,40 +5162,99 @@ public function billPaymentChargePreview(Request $req)
 	public function fetchBillers(Request $req)
 	{
 		$token = $req->header('token');
+
+		if (str_starts_with($token, 'pathaoExpiry')) {
+			$checkResult = $this->checkExpiryToken($token);
+
+			if ($checkResult->original['status'] == 'failed') {
+				return response()->json([
+					"result" => "failed",
+					"status_code" => "1001",
+					'message' => $checkResult->original['message']
+				]);
+			} else {
+				$token = 'QkDVzVbfoQYh40QdqcpeElEmiZJk1hf9iAMbW6nq';
+			}
+		}
+
 		$ccObj = new CommonController();
 		$cData = $ccObj->getIdFromToken($token);
-		if(count($cData)>0)
-		{
-			$query = DB::table('biller')->select('biller.bllr_id','biller.bill_code AS biller_code','biller.name AS biller_name','bill_type.type_name_en AS service_name','biller.api_url','biller.request_body_param', 'biller.base_url','biller.api_extension','biller.input_fields', 'biller.image as icon_url')
-			->leftjoin('bill_type','bill_type.id','biller.type_id')
-			->where('biller.is_active', 1)->where('biller.third_party_allow',1);
+
+		if (count($cData) > 0) {
+			$query = DB::table('biller')
+				->select(
+					'biller.bllr_id',
+					'biller.bill_code AS biller_code',
+					'biller.name AS biller_name',
+					'bill_type.type_name_en AS service_name',
+					'biller.api_url',
+					'biller.request_body_param',
+					'biller.base_url',
+					'biller.api_extension',
+					'biller.input_fields',
+					'biller.image as icon_url'
+				)
+				->leftJoin('bill_type', 'bill_type.id', 'biller.type_id')
+				->where('biller.is_active', 1);
+
+			if ($token === "QkDVzVbfoQYh40QdqcpeElEmiZJk1hf9iAMbW6nq") {
+				$query->where(function ($q) {
+					$q->where('biller.third_party_allow', 1)
+					->orWhere('biller.id', 6);
+				});
+			} else {
+				$query->where('biller.third_party_allow', 1);
+			}
+
 			$data = $query->orderBy('biller.type_id', 'asc')->get();
 
-			$finalArray=array();
-			foreach ($data as $key => $value) {
-				$inputJson=$value->input_fields;
-				$value->input_fields=json_decode($inputJson, true);
-				array_push($finalArray, $value);
+			$finalArray = [];
+			$billTypeAdditions = ['bakhrabad_gas', 'jalalabad_gas', 'paschimanchal_gas', 'khulna_wasa'];
+
+			foreach ($data as $value) {
+				// Decode input_fields JSON into PHP array
+				$allInputs = json_decode($value->input_fields, true) ?: [];
+
+				// Dynamically add "bill_type" field for specific billers
+				if (in_array($value->biller_code, $billTypeAdditions)) {
+					$allInputs[] = [
+						"input_name" => "bill_type",
+						"input_type" => "string",
+						"max_length" => 11,
+						"label_name_en" => "Enter bill type",
+						"label_name_bn" => "বিলের ধরন লিখুন"
+					];
+				}
+
+				$value->input_fields = $allInputs;
+
+				// Update request_body_param to include all input names, comma-separated
+				$value->request_body_param = implode(',', array_column($allInputs, 'input_name'));
+
+				// Change domain to pay.shl.com.bd
+				$value->api_url = str_replace('https://shl.com.bd', 'https://pay.shl.com.bd', $value->api_url);
+				$value->base_url = str_replace('https://shl.com.bd', 'https://pay.shl.com.bd', $value->base_url);
+
+				$finalArray[] = $value;
 			}
 
-			return response()->json(array("result" => "success", "message"=>"Biller fetched successfully", "data"=>$finalArray));
-			//print_r($data[7]);
-			//print_r(json_decode($data[7]->input_fields));
-
-			/*$filalArray=array();
-			foreach ($data as $key => $value)
-			{
-				$jsdta=$value->input_fields;
-				$value->input_fields=json_decode($jsdta, JSON_UNESCAPED_UNICODE);
-				array_push($filalArray, $value);
-			}
-			print_r($filalArray);*/
-		}
-		else
-		{
-			return response()->json(array("result" => "failed", 'message'=>'Invalid token'));
+			return response()->json([
+				"result" => "success",
+				"status_code" => "1006",
+				"message" => "Biller fetched successfully",
+				"data" => $finalArray
+			]);
+		} else {
+			return response()->json([
+				"result" => "failed",
+				"message" => "Invalid token",
+				"status_code" => "1005",
+			]);
 		}
 	}
+
+
+
 
 
 	public function fetchBillersTest(Request $req)
@@ -6042,258 +6540,443 @@ public function billPaymentChargePreview(Request $req)
         return $this->handleSandboxRequest($request,__FUNCTION__);
     }
 
-    public function fetchSandboxBillers(Request $request)
-    {
-        return $this->handleSandboxRequest($request,__FUNCTION__);
-    }
+	public function fetchSandboxBillers(Request $req)
+	{
+		$token = $req->header('token');
+
+		if (str_starts_with($token, 'pathaoExpiry')) {
+			$checkResult = $this->checkExpiryTokenSandbox($token);
+
+			if ($checkResult->original['status'] == 'failed') {
+				return response()->json([
+					"result" => "failed",
+					"status_code" => "1001",
+					'message' => $checkResult->original['message']
+				]);
+			} else {
+				$token = 'QkDVzVbfoQYh40QdqcpeElEmiZJk1hf9iAMbW6nq';
+			}
+		}
+
+		$ccObj = new CommonController();
+		$cData = $ccObj->getIdFromToken($token);
+
+		if (count($cData) > 0) {
+			$query = DB::table('biller')
+				->select(
+					'biller.bllr_id',
+					'biller.bill_code AS biller_code',
+					'biller.name AS biller_name',
+					'bill_type.type_name_en AS service_name',
+					'biller.api_url',
+					'biller.request_body_param',
+					'biller.base_url',
+					'biller.api_extension',
+					'biller.input_fields',
+					'biller.image as icon_url'
+				)
+				->leftJoin('bill_type', 'bill_type.id', 'biller.type_id')
+				->where('biller.is_active', 1);
+
+			if ($token === "QkDVzVbfoQYh40QdqcpeElEmiZJk1hf9iAMbW6nq") {
+				$query->where(function ($q) {
+					$q->where('biller.third_party_allow', 1)
+					->orWhere('biller.id', 6);
+				});
+			} else {
+				$query->where('biller.third_party_allow', 1);
+			}
+
+			$data = $query->orderBy('biller.type_id', 'asc')->get();
+
+			$finalArray = [];
+			$billTypeAdditions = ['bakhrabad_gas', 'jalalabad_gas', 'paschimanchal_gas', 'khulna_wasa'];
+
+			foreach ($data as $value) {
+				// Decode input_fields JSON into array
+				$allInputs = json_decode($value->input_fields, true) ?: [];
+
+				// Dynamically add "bill_type" field for specific billers
+				if (in_array($value->biller_code, $billTypeAdditions)) {
+					$allInputs[] = [
+						"input_name" => "bill_type",
+						"input_type" => "string",
+						"max_length" => 11,
+						"label_name_en" => "Enter bill type",
+						"label_name_bn" => "বিলের ধরন লিখুন"
+					];
+				}
+
+				$value->input_fields = $allInputs;
+
+				// Update request_body_param to include all input field names, comma-separated
+				$value->request_body_param = implode(',', array_column($allInputs, 'input_name'));
+
+				// Modify URLs for sandbox environment
+				$value->api_url = str_replace(
+					'https://shl.com.bd/api/appapi/billpay/fetch',
+					'https://pay.shl.com.bd/api/appapi/billpay/fetch/sandbox',
+					$value->api_url
+				);
+				$value->base_url = 'https://pay.shl.com.bd/api/appapi/billpay/fetch/sandbox';
+
+				array_push($finalArray, $value);
+			}
+
+			return response()->json([
+				"result" => "success",
+				"message" => "Biller fetched successfully",
+				"data" => $finalArray
+			]);
+		} else {
+			return response()->json([
+				"result" => "failed",
+				"message" => "Invalid token"
+			]);
+		}
+	}
+
 
     public function fetchSandboxBPDBPrepaid(Request $request)
     {
         return $this->handleSandboxRequest($request,__FUNCTION__);
     }
 
-    private function handleSandboxRequest(Request $request, $routeName)
-    {
-        // Get all possible parameters from the request
-        $bill_no = $request->input('bill_no');
-        $biller_mobile_no = $request->input('biller_mobile_no');
-        $biller_acc_no = $request->input('biller_acc_no');
-        $bill_month = $request->input('bill_month');
-        $bill_year = $request->input('bill_year');
-        $bill_period = $request->input('bill_period');
-        $meter_no = $request->input('meter_no');
-        $amount = $request->input('amount');
+	public function fetchSandboxDpdcPostpaid(Request $request)    
+	{         
+		return $this->handleSandboxRequest($request,__FUNCTION__);
+	}
 
+	private function handleSandboxRequest(Request $request, $routeName)
+	{
+		// Get all possible parameters from the request
+		$bill_no = $request->input('bill_no');
+		$biller_mobile_no = $request->input('biller_mobile_no');
+		$biller_acc_no = $request->input('biller_acc_no');
+		$bill_month = $request->input('bill_month');
+		$bill_year = $request->input('bill_year');
+		$bill_period = $request->input('bill_period');
+		$meter_no = $request->input('meter_no');
+		$amount = $request->input('amount');
 
-        $token = $request->header('token');
+		$token = $request->header('token');
 
 		if (str_starts_with($token, 'pathaoExpiry')) {
-                
-			$checkResult= $this->checkExpiryToken($token);
-			
+			$checkResult= $this->checkExpiryTokenSandbox($token);
 			if($checkResult->original['status']== 'failed') {
-				return response()->json(array("result" => "failed", 'message'=>$checkResult->original['message']));
+				return response()->json(array("result" => "failed","status_code" => "1001", 'message'=>$checkResult->original['message']));
 			} else {
 				$token = 'QkDVzVbfoQYh40QdqcpeElEmiZJk1hf9iAMbW6nq';
 			}
-        }
+		} else {
+			return response()->json([
+				"result" => "failed",
+				"status_code" => "1001",
+				'message' => 'Please Provide valid token'
+			]);
+		}
 
-        if (empty($token)) {
+		if (empty($token)) {
+			return response()->json([
+				"result" => "failed",
+				"status_code" => "1001",
+				'message' => 'Please Provide token'
+			]);
+		}
 
-            return response()->json([
-                "result" => "failed",
-                'message' => 'Please Provide token'
-            ]);
+		// ✅ Predefined allowed account/bill numbers per route
+		$allowedNumbers = [
+			'fetchSandboxDescoPrepaid'        => ['DESCO123', 'DESCO456'],
+			'fetchSandboxDescoPostpaid'       => ['DPOST123', 'DPOST999'],
+			'fetchSandboxNescoPostpaid'       => ['NESCO001', 'NESCO777'],
+			'fetchSandboxPalliBidyutPostpaid' => ['PB12345', 'PB98765'],
+			'fetchSandboxWestZonePowerPostpaid' => ['WZP111', 'WZP222'],
+			'fetchSandboxDhakaWasa'           => ['DWASA101', 'DWASA555'],
+			'fetchSandboxKhulnaWasa'          => ['KWASA333', 'KWASA444'],
+			'fetchSandboxRajshahiWasa'        => ['RWASA999', 'RWASA222'],
+			'fetchSandboxBakhrabadGas'        => ['BGAS123', 'BGAS456'],
+			'fetchSandboxJalalabadGas'        => ['JGAS111', 'JGAS222'],
+			'fetchSandboxPaschimanchalGas'    => ['PGAS999', 'PGAS888'],
+			'fetchSandboxBPDBPrepaid'         => ['BPDBMTR1', 'BPDBMTR2'],
+			'fetchSandboxDpdcPostpaid'        => ['DPDC111', 'DPDC222'],
+		];
 
-        }
 
-        // Check if mobile number is provided (common requirement)
+		// Check if mobile number is provided (common requirement)
+		if (!in_array($routeName, [
+			'fetchSandboxKhulnaWasa',
+			'fetchSandboxRajshahiWasa',
+			'fetchSandboxDhakaWasa',
+			'fetchSandboxDescoPrepaid',
+			'fetchSandboxDescoPostpaid',
+			'fetchSandboxPalliBidyutPostpaid',
+			'fetchSandboxWestZonePowerPostpaid',
+			'fetchSandboxDpdcPostpaid'
+		])) {
+			if (empty($biller_mobile_no)) {
+				return response()->json([
+					"result" => "failed",
+					"status_code" => "1005",
+					'message' => 'Please enter valid mobile no..'
+				]);
+			}
+		}
 
-        if (!in_array($routeName, [
-            'fetchSandboxKhulnaWasa',
-            'fetchSandboxRajshahiWasa',
-            'fetchSandboxDhakaWasa',
-            'fetchSandboxDescoPrepaid',
-            'fetchSandboxDescoPostpaid',
-            'fetchSandboxPalliBidyutPostpaid',
-            'fetchSandboxWestZonePowerPostpaid'
-        ])) {
-            if (empty($biller_mobile_no)) {
-                return response()->json([
-                    "result" => "failed",
-                    'message' => 'Please enter valid mobile no..'
-                ]);
-            }
-        }
+		// Additional validation based on biller type
+		$validationErrors = [];
 
-        // Additional validation based on biller type
-        $validationErrors = [];
+		switch ($routeName) {
+			case 'fetchSandboxDescoPostpaid':
+			case 'fetchSandboxNescoPostpaid':
+			case 'fetchSandboxDhakaWasa':
+			case 'fetchSandboxKhulnaWasa':
+			case 'fetchSandboxRajshahiWasa':
+				if (empty($bill_no)) {
+					$validationErrors[] = 'bill_no parameter is required';
+				}
+				break;
 
-        switch ($routeName) {
-            case 'fetchSandboxDescoPostpaid':
-            case 'fetchSandboxNescoPostpaid':
-            case 'fetchSandboxDhakaWasa':
-            case 'fetchSandboxKhulnaWasa':
-            case 'fetchSandboxRajshahiWasa':
-                if (empty($bill_no)) {
-                    $validationErrors[] = 'Bill number is required';
-                }
-                break;
+			case 'fetchSandboxPalliBidyutPostpaid':
+				if (empty($bill_no) || empty($bill_month) || empty($bill_year)) {
+					$validationErrors[] = 'bill_no, bill_month, and bill_year parameter are required';
+				}
+				break;
 
-            case 'fetchSandboxPalliBidyutPostpaid':
-                if (empty($bill_no) || empty($bill_month) || empty($bill_year)) {
-                    $validationErrors[] = 'Bill number, month, and year are required';
-                }
-                break;
+			case 'fetchSandboxDpdcPostpaid':
+				if (empty($biller_acc_no) || empty($bill_period)) {
+					$validationErrors[] = 'biller_acc_no and bill_period parameter are required';
+				}
+				break;
 
-            case 'fetchSandboxDpdcPostpaid':
-                if (empty($biller_acc_no) || empty($bill_period)) {
-                    $validationErrors[] = 'Account number and bill period are required';
-                }
-                break;
+			case 'fetchSandboxBPDBPrepaid':
+				if (empty($meter_no) || empty($biller_mobile_no) || empty($amount)) {
+					$validationErrors[] = 'meter_no, biller_mobile_no and amount parameter are required';
+				} else {
+				if (!is_string($amount)) {
+					$validationErrors[] = 'amount must be a string';
+				}
+			}
+				break;
 
-            case 'fetchSandboxBPDBPrepaid':
-            if (empty($meter_no) || empty($biller_mobile_no) || empty($amount)) {
-                $validationErrors[] = 'Meter number, biller_mobile_no and amount are required';
-            }
-            break;
+			case 'fetchSandboxWestZonePowerPostpaid':
+			case 'fetchSandboxBakhrabadGas':
+			case 'fetchSandboxJalalabadGas':
+			case 'fetchSandboxPaschimanchalGas':
+				if (empty($biller_acc_no)) {
+					$validationErrors[] = 'biller_acc_no parameteer is required';
+				}
+				break;
 
-            case 'fetchSandboxWestZonePowerPostpaid':
-            case 'fetchSandboxBakhrabadGas':
-            case 'fetchSandboxJalalabadGas':
-            case 'fetchSandboxPaschimanchalGas':
-                if (empty($biller_acc_no)) {
-                    $validationErrors[] = 'Account number is required';
-                }
-                break;
-            case 'fetchSandboxDescoPrepaid':
-                if (empty($biller_acc_no) || empty($amount)) {
-                    $validationErrors[] = 'Account number and amount is required';
-                }
-                break;
+			case 'fetchSandboxDescoPrepaid':
+				if (empty($biller_acc_no) || empty($amount)|| empty($biller_mobile_no)) {
+					$validationErrors[] = 'biller_acc_no, amount and biller_mobile_no parameter is required';
+				} else {
+				if (!is_string($amount)) {
+					$validationErrors[] = 'amount must be a string';
+				}
+			}
+				break;
 
-            case 'fetchSandboxBillers':
-                // No additional validation needed for billers list
-                break;
-        }
+			case 'fetchSandboxBillers':
+				// No additional validation needed for billers list
+				break;
+		}
 
-        if (!empty($validationErrors)) {
-            return response()->json([
-                "result" => "failed",
-                'message' => implode(', ', $validationErrors)
-            ]);
-        }
+		if (!empty($validationErrors)) {
+			return response()->json([
+				"result" => "failed",
+				"status_code" => "1005",
+				'message' => implode(', ', $validationErrors)
+			]);
+		}
 
-        // Map route names to biller IDs
-        $billerIdMap = [
-            'fetchSandboxBPDBPrepaid' => 7,
-            'fetchSandboxDescoPrepaid' => 1,
-            'fetchSandboxDescoPostpaid' => 2,        // DESCO Postpaid
-            'fetchSandboxPalliBidyutPostpaid' => 6,  // Palli bidyut - Postpaid
-            'fetchSandboxNescoPostpaid' => 18,       // NESCO Postpaid
-            'fetchSandboxDpdcPostpaid' => 4,         // DPDC Postpaid
-            'fetchSandboxWestZonePowerPostpaid' => 16, // West Zone Postpaid
-            'fetchSandboxBakhrabadGas' => 11,        // Bakhrabad Gas
-            'fetchSandboxJalalabadGas' => 10,        // Jalalabad Gas
-            'fetchSandboxPaschimanchalGas' => 12,    // Paschimanchal Gas
-            'fetchSandboxDhakaWasa' => 8,            // Dhaka Wasa
-            'fetchSandboxKhulnaWasa' => 9,           // Khulna Wasa
-            'fetchSandboxRajshahiWasa' => 17,        // Rajshahi Wasa
-            'fetchSandboxBillers' => 1,              // Default for billers list
-        ];
 
-        $biller_id = $billerIdMap[$routeName] ?? 1;
+		// ✅ Validate input against allowed numbers
+		$valid = false;
+		if (isset($allowedNumbers[$routeName])) {
+			$checkList = $allowedNumbers[$routeName];
 
-        // Create mock bill data
-        $mockBillData = [
-            'gateway_id' => 999,
-            'acc_no' => 'SANDBOX_ACC',
-            'biller_id' => $biller_id,
-            'biller_cat_id' => rand(1, 10),
-            'bill_name' => 'Sandbox Bill - ' . $routeName,
-            'bill_no' => $bill_no ?? 'SB_' . rand(100000, 999999),
-            'biller_acc_no' => $biller_acc_no ?? 'SB_ACC_' . rand(100000, 999999),
-            'biller_mobile' => $biller_mobile_no,
-            'bill_type' => 'sandbox',
-            'bill_from' => date('Y-m-01'),
-            'bill_to' => date('Y-m-t'),
-            'bill_gen_date' => date('Y-m-d'),
-            'bill_due_date' => date('Y-m-d', strtotime('+15 days')),
-            'bill_amount' => rand(100, 5000),
-            'bill_vat' => rand(10, 100),
-            'bill_late_fee' => 0,
-            'ekpay_fee' => 0,
-            'bill_total_amount' => rand(110, 5100),
-            'charge' => 5,
-            'is_bill_paid' => 0,
-            'status' => 'pending',
-            'message' => 'Sandbox bill created successfully',
-            'transaction_id' => 'TXN_SB_' . time(),
-            'trx_id' => 'TRX_SB_' . time(),
-            'ref_id' => 'REF_SB_' . time(),
-            'ref_no_ack' => 'ACK_SB_' . time(),
-            'trx_tms' => date('Y-m-d H:i:s'),
-            'bill_address' => 'Sandbox Address',
-            'bllr_id' => 'BILLER_SB',
-            'bllr_inf' => 'Sandbox Biller Information',
-            'payment_date' => null,
-            'payment_amount' => 0,
-            'payment_trx_id' => null,
-            'payment_method' => null,
-            'bpc_vat' => 0,
-            'bpc_dealer' => 0,
-            'bpc_ait_dealer' => 0,
-            'bpc_retailer' => 0,
-            'bpc_ait_retailer' => 0,
-            'bpc_admin' => 0,
-            'msisdn' => $biller_mobile_no,
-            'saved' => 0,
-            'nick_name' => 'Sandbox Bill',
-            'pre_bal' => 10000,
-            'new_bal' => 9500,
-            'container_1' => json_encode($request->all()),
-            'container_2' => 'sandbox_container_2',
-            'client_ref' => 'CLIENT_SB_' . time(),
-            'operator_token' => 'SANDBOX_TOKEN_' . time(),
-            'payment_retry_count' => 0,
-            'created_at' => now(),
-            'paid_via' => 'sandbox',
-            'updated_at' => now()
-        ];
+			if ($bill_no && in_array($bill_no, $checkList)) {
+				$valid = true;
+			}
+			if ($biller_acc_no && in_array($biller_acc_no, $checkList)) {
+				$valid = true;
+			}
+			if ($meter_no && in_array($meter_no, $checkList)) {
+				$valid = true;
+			}
+		}
 
-        try {
-            // Insert into bill_payment_sandbox table
-            $id = DB::table('bill_payment_sandbox')->insertGetId($mockBillData);
+		if (!$valid) {
+			return response()->json([
+				"result" => "failed",
+				"status_code" => "1005",
+				"message" => "Bill/Account number not found in sandbox records"
+			]);
+		}
 
-            // Create response data
+		// Map route names to biller IDs
+		$billerIdMap = [
+			'fetchSandboxBPDBPrepaid' => 7,
+			'fetchSandboxDescoPrepaid' => 1,
+			'fetchSandboxDescoPostpaid' => 2,
+			'fetchSandboxPalliBidyutPostpaid' => 6,
+			'fetchSandboxNescoPostpaid' => 18,
+			'fetchSandboxDpdcPostpaid' => 4,
+			'fetchSandboxWestZonePowerPostpaid' => 16,
+			'fetchSandboxBakhrabadGas' => 11,
+			'fetchSandboxJalalabadGas' => 10,
+			'fetchSandboxPaschimanchalGas' => 12,
+			'fetchSandboxDhakaWasa' => 8,
+			'fetchSandboxKhulnaWasa' => 9,
+			'fetchSandboxRajshahiWasa' => 17,
+			'fetchSandboxBillers' => 1,
+		];
+
+		$biller_id = $billerIdMap[$routeName] ?? 1;
+
+		$ref_id = 'REF_SB_' . time();
+
+		// Create mock bill data
+		$mockBillData = [
+			'gateway_id' => 999,
+			'acc_no' => 'SANDBOX_ACC',
+			'biller_id' => $biller_id,
+			'biller_cat_id' => rand(1, 10),
+			'bill_name' => 'Sandbox Bill - ' . $routeName,
+			'bill_no' => $bill_no ?? 'SB_' . rand(100000, 999999),
+			'biller_acc_no' => $biller_acc_no ?? 'SB_ACC_' . rand(100000, 999999),
+			'biller_mobile' => $biller_mobile_no,
+			'bill_type' => 'sandbox',
+			'bill_from' => date('Y-m-01'),
+			'bill_to' => date('Y-m-t'),
+			'bill_gen_date' => date('Y-m-d'),
+			'bill_due_date' => date('Y-m-d', strtotime('+15 days')),
+			'bill_amount' => rand(100, 5000),
+			'bill_vat' => rand(10, 100),
+			'bill_late_fee' => 0,
+			'ekpay_fee' => 0,
+			'bill_total_amount' => rand(110, 5100),
+			'charge' => 5,
+			'is_bill_paid' => 0,
+			'status' => 'pending',
+			'message' => 'Sandbox bill created successfully',
+			'transaction_id' => 'TXN_SB_' . time(),
+			'trx_id' => 'TRX_SB_' . time(),
+			'ref_id' => $ref_id,
+			'ref_no_ack' => 'ACK_SB_' . time(),
+			'trx_tms' => date('Y-m-d H:i:s'),
+			'bill_address' => 'Sandbox Address',
+			'bllr_id' => 'BILLER_SB',
+			'bllr_inf' => 'Sandbox Biller Information',
+			'payment_date' => null,
+			'payment_amount' => 0,
+			'payment_trx_id' => null,
+			'payment_method' => null,
+			'bpc_vat' => 0,
+			'bpc_dealer' => 0,
+			'bpc_ait_dealer' => 0,
+			'bpc_retailer' => 0,
+			'bpc_ait_retailer' => 0,
+			'bpc_admin' => 0,
+			'msisdn' => $biller_mobile_no,
+			'saved' => 0,
+			'nick_name' => 'Sandbox Bill',
+			'pre_bal' => 10000,
+			'new_bal' => 9500,
+			'container_1' => json_encode($request->all()),
+			'container_2' => 'sandbox_container_2',
+			'client_ref' => 'CLIENT_SB_' . time(),
+			'operator_token' => 'SANDBOX_TOKEN_' . time(),
+			'payment_retry_count' => 0,
+			'created_at' => now(),
+			'paid_via' => 'sandbox',
+			'updated_at' => now()
+		];
+
+		try {
+			$id = DB::table('bill_payment_sandbox')->insertGetId($mockBillData);
+
 			$rspData = [
-				"bill_name" => $mockBillData['bill_name'] ?? 'Sandbox Bill',
-				"bill_no" => $mockBillData['bill_no'] . "|" . strtoupper(substr(md5(uniqid()), 0, 16)),
-				"biller_acc_no" => $mockBillData['biller_acc_no'],
-				"biller_mobile" => $mockBillData['biller_mobile'],
-				"bill_amount" => (string)$mockBillData['bill_amount'],
-				"bill_vat" => (string)$mockBillData['bill_vat'],
-				"charge" => (string)$mockBillData['charge'],
-				"bill_total_amount" => (string)$mockBillData['bill_total_amount'],
-				"is_bill_paid" => $mockBillData['is_bill_paid'] == 1 ? "Y" : "N",
-				"bllr_id" => $mockBillData['bllr_id'],
-				"customer_name" => "",
-				"meter_type" => "",
-				"tariff_program" => ""
+				'bill_name'        => 'Sandbox Bill - ' . $routeName,
+				'bill_no'          => $bill_no ?? rand(100000, 999999),
+				'biller_acc_no'    => $biller_acc_no ?? 'SB_ACC_' . rand(100000, 999999),
+				'biller_mobile'    => $biller_mobile_no,
+				'bill_address'     => 'Sandbox Address',
+				'bill_due_date'    => date('Y-m-d', strtotime('+15 days')),
+
+				// ✅ Cast numeric values to string
+				'bill_amount'      => (string) rand(100, 5000),
+				'bill_vat'         => (string) rand(10, 100),
+				'bill_late_fee'    => (string) rand(0, 100),
+				'charge'           => (string) 5,
+				'bill_total_amount'=> (string) rand(110, 5100),
+
+				"bill_month"       => "08",
+				"bill_year"        => "2025",
+
+				'is_bill_paid'     => 'N',
+				'bllr_id'          => 'b025',
 			];
 
-            // Add additional fields based on request type
-            if ($bill_month && $bill_year) {
-                $rspData["bill_month"] = $bill_month;
-                $rspData["bill_year"] = $bill_year;
-            }
+			if($routeName = 'fetchSandboxPalliBidyutPostpaid') {
 
-            if ($bill_period) {
-                $rspData["bill_period"] = $bill_period;
-            }
+				$rspData = [
+					'bill_name'        => 'Sandbox Bill - ' . $routeName,
+					'bill_no'          => $bill_no ?? rand(100000, 999999),
+					'biller_acc_no'    => $biller_acc_no ?? 'SB_ACC_' . rand(100000, 999999),
+					'biller_mobile'    => $biller_mobile_no,
+					'bill_address'     => 'Sandbox Address',
+					'bill_due_date'    => date('Y-m-d', strtotime('+15 days')),
 
-            $bill_ref = "SANDBOX_" . time() . "_" . $id;
+					// ✅ Cast numeric values to string
+					'bill_amount'      => (string) rand(100, 5000),
+					'bill_vat'         => (string) rand(10, 100),
+					'bill_late_fee'    => (string) rand(0, 100),
+					'charge'           => (string) 5,
+					'bill_total_amount'=> (string) rand(110, 5100),
 
-            $invoice = $this->billInvoiceDisplaySandbox($id);
+					"bill_month"       => "08",
+					"bill_year"        => "2025",
 
+					'is_bill_paid'     => 'N',
+					'bllr_id'          => 'b025',
+				];
+
+			}
+
+			if ($bill_month && $bill_year) {
+				$rspData["bill_month"] = $bill_month;
+				$rspData["bill_year"] = $bill_year;
+			}
+
+			if ($bill_period) {
+				$rspData["bill_period"] = $bill_period;
+			}
+
+			$bill_ref = "SANDBOX_" . time() . "_" . $id;
+			$invoice = $this->billInvoiceDisplaySandbox($id);
 
 			$referData["bill_payment_id"] = $id;
-			$referData["bill_refer_id"] = $bill_ref;
+			$referData["bill_refer_id"] = $ref_id;
 
-            return response()->json([
-                "result" => "success",
-                "bill_ref" => $referData,
-                'data' => $rspData,
-                'invoice' => $invoice
-            ]);
+			return response()->json([
+				"result" => "success",
+				"status_code" => "1006",
+				"bill_ref" => $referData,
+				'data' => $rspData,
+				'invoice' => $invoice
+			]);
 
-        } catch (\Exception $e) {
-            return response()->json([
-                "result" => "failed",
-                'message' => 'Failed to create sandbox bill: ' . $e->getMessage()
-            ]);
-        }
-    }
+		} catch (\Exception $e) {
+			return response()->json([
+				"result" => "failed",
+				"status_code" => "1005",
+				'message' => 'Failed to create sandbox bill: ' . $e->getMessage()
+			]);
+		}
+	}
+
 
     // Modified billInvoiceDisplay to use sandbox table
     public function billInvoiceDisplaySandbox($id)
@@ -6411,6 +7094,7 @@ public function billPaymentChargePreview(Request $req)
         if($password != 'Dbd@2123' || $username != '01958570294' ) {
             return response()->json([
             'status' => 'failed',
+			'status_code' => '1005',
             'message' => "kindly provide correct Username and password"
             ]);
         }
@@ -6429,6 +7113,40 @@ public function billPaymentChargePreview(Request $req)
 
         return response()->json([
             'status' => 'success',
+			'status_code' => '1009',
+            'expiry_token' => $refreshToken
+        ]);
+    }
+
+	   public function generateExpiryTokenPathaoSandbox(Request $request)
+    {
+
+        $password = $request->password;
+        $username = $request->username;
+
+        if($password != 'Dbd@4455' || $username != '01965430294' ) {
+            return response()->json([
+            'status' => 'failed',
+			'status_code' => '1010',
+            'message' => "kindly provide correct Username and password"
+            ]);
+        }
+
+        // Generate a random secure string (256-bit)
+        $randomString = bin2hex(random_bytes(32));
+        $refreshToken = 'pathaoExpiry'.hash('sha256', $randomString . time());
+
+        // Save it in database
+        \DB::table('expiry_tokens_pathao_sandbox')->insert([
+            'token' => $refreshToken,
+            'expires_at' => now()->addMinutes(15), // expire in 15 minutes
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+			'status_code' => '1009',
             'expiry_token' => $refreshToken
         ]);
     }
@@ -6438,6 +7156,37 @@ public function billPaymentChargePreview(Request $req)
     {
         // Look up the token in the database
         $record = \DB::table('expiry_tokens_pathao')
+            ->where('token', $token)
+            ->first();
+
+        if (!$record) {
+            return response()->json([
+                'status' => 'failed',
+                'message' => 'token not found',
+                'token' => $token
+            ], 404);
+        }
+
+        // Check if token is expired
+        if ($record->expires_at < now()) {
+            return response()->json([
+                'status' => 'failed',
+                'message' => 'Token expired'
+            ], 401);
+        }
+
+        return response([
+            'status' => 'success',
+            'message' => 'Token is valid'
+        ]);
+    }
+
+
+
+	public function checkExpiryTokenSandbox($token)
+    {
+        // Look up the token in the database
+        $record = \DB::table('expiry_tokens_pathao_sandbox')
             ->where('token', $token)
             ->first();
 

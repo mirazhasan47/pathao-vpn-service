@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/appapi/billpay/generate-expiry-token-pathao','AppApi\BillPay@generateExpiryTokenPathao');
 
+Route::post('/appapi/billpay/sandbox/generate-expiry-token-pathao','AppApi\BillPay@generateExpiryTokenPathaoSandbox');
+
 //Bill payment sand box routes
 
 Route::post('/appapi/billpay/fetch/sandbox/desco-prepaid','AppApi\BillPay@fetchSandboxDescoPrepaid');
@@ -32,6 +34,8 @@ Route::post('/appapi/billpay/fetch/sandbox/rajshahi-wasa','AppApi\BillPay@fetchS
 Route::post('/appapi/billpay/fetch/sandbox/bakhrabad-gas','AppApi\BillPay@fetchSandboxBakhrabadGas');
 Route::post('/appapi/billpay/fetch/sandbox/jalalabad-gas','AppApi\BillPay@fetchSandboxJalalabadGas');
 Route::post('/appapi/billpay/fetch/sandbox/paschimanchal-gas','AppApi\BillPay@fetchSandboxPaschimanchalGas');
+
+Route::post('/appapi/billpay/fetch/sandbox/dpdc-postpaid','AppApi\BillPay@fetchSandboxDpdcPostpaid');
 
 Route::post('/appapi/billpay/fetch/sandbox/billers','AppApi\BillPay@fetchSandboxBillers');
 
@@ -223,6 +227,8 @@ Route::post('/appapi/billpay/bill-payment-history','AppApi\Reports@billPaymentHi
 Route::post('/appapi/bus-ticket-history','AppApi\Reports@busTicketHistory');
 Route::post('/appapi/billpay/bill-payment-receipt','AppApi\Reports@billPaymentReceipt');
 Route::get('/appapi/billpay/fetch/check-bill-payment-status','AppApi\BillPay@checkBillPaymentStatus');
+
+Route::get('/appapi/billpay/fetch/sandbox/check-bill-payment-status','AppApi\BillPay@checkBillPaymentStatusSandbox');
 
 Route::post('/appapi/upload-org-image','AppApi\Registration@uploadOrgImage');
 
